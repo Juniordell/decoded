@@ -216,3 +216,22 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Environment
+.env
+.env.local
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+poetry.lock
+
+# Docker
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
