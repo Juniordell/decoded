@@ -13,10 +13,13 @@ dependencies = [
     "sqlalchemy[asyncio] (>=2.0)",
     "asyncpg (>=0.30)",
     "alembic (>=1.14)",
+    "httpx (>=0.28.1,<0.29.0)",
+    "arxiv (>=4.0.1,<5.0.0)",
+    "tenacity (>=9.1.4,<10.0.0)",
 ]
 
 [tool.poetry]
-package-mode = false
+packages = [{include = "decoded", from = "src"}]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.0"
