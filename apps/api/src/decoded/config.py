@@ -23,5 +23,6 @@ class Settings(BaseSettings):
     openalex_email: Optional[str] = None  # for polite pool
     semantic_scholar_api_key: Optional[str] = None  # optional but recommended
 
+    llama_cloud_api_key: Optional[str] = None
 
 settings = Settings()
