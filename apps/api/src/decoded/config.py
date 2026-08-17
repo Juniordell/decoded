@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,6 +18,10 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://decoded:decoded_dev@localhost:5432/decoded"
     redis_url: str = "redis://localhost:6379/0"
     qdrant_url: str = "http://localhost:6333"
+
+    # Enrichment (all optional — pipeline still runs without them)
+    openalex_email: Optional[str] = None  # for polite pool
+    semantic_scholar_api_key: Optional[str] = None  # optional but recommended
 
 
 settings = Settings()
