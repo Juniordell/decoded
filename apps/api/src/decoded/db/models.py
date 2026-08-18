@@ -193,3 +193,38 @@ class IngestionRun(Base):
     errors: Mapped[int] = mapped_column(Integer, default=0)
 
     log: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+# ============================================================
+# DecodedContent (many-to-1 with papers — one row per section per paper)
+# ============================================================
+class DecodedContent(Base):
+    __tablename__ = "decoded_contents"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    paper_id: Mapped[int] = mapped_column(
+        ForeignKey("papers.id", ondelete="CASCADE"),
+        index=True,
+    )
+    section: Mapped[str] = mapped_column(String(50), nullable=False)  # "one_sentence" | ...
+
+    content: Mapped[dict] = mapped_column(JSON, nullable=False)
+    schema_version: Mapped[int] = mapped_column(Integer, default=1)
+
+    model: Mapped[str] = mapped_column(String(100), nullable=False)
+    prompt_version: Mapped[str] = mapped_column(String(20), nullable=False)
+    input_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    output_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
+    latency_ms: Mapped[int] = mapped_column(Integer, default=0)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "paper_id",
+            "section",
+            "schema_version",
+            "prompt_version",
+            name="uq_decoded_contents_paper_section_versions",
+        ),
+        Index("ix_decoded_contents_section", "section"),
+    )

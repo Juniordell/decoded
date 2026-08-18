@@ -29,4 +29,9 @@ class Settings(BaseSettings):
     embedding_model_small: str = "text-embedding-3-small"
     embedding_model_large: str = "text-embedding-3-large"
 
+    anthropic_api_key: Optional[str] = None
+    decoder_model_fast: str = "claude-haiku-4-5-20251001"
+    decoder_model_deep: str = "claude-sonnet-4-6"
+    decoder_prompt_version: str = "v1"
+
 settings = Settings()
