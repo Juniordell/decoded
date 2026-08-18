@@ -1,0 +1,24 @@
+name: decoded
+prefect-version: 3.x
+
+pull:
+  - prefect.deployments.steps.set_working_directory:
+      directory: ./apps/api
+
+deployments:
+  - name: ingestion-hourly
+    entrypoint: src/decoded/flows/pipeline.py:ingestion_flow
+    work_pool:
+      name: decoded-pool
+    # schedule:
+    #   cron: "0 * * * *" # every hour on the hour
+    #   timezone: "UTC"
+    parameters:
+      lookback_hours: 2
+      poll_max: 100
+      enrich_limit: 50
+      parse_limit: 5
+      embed_limit: 10
+    tags:
+      - decoded
+      - ingestion
