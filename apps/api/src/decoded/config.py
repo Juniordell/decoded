@@ -25,4 +25,8 @@ class Settings(BaseSettings):
 
     llama_cloud_api_key: Optional[str] = None
 
+    openai_api_key: Optional[str] = None
+    embedding_model_small: str = "text-embedding-3-small"
+    embedding_model_large: str = "text-embedding-3-large"
+
 settings = Settings()
