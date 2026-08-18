@@ -24,7 +24,7 @@ async def main() -> int:
     parser.add_argument("--arxiv-id", required=True, help="arXiv ID (e.g. 2401.12345)")
     parser.add_argument(
         "--sections",
-        default="one_sentence,sixty_second",
+        default="one_sentence,sixty_second,deep_dive",
         help="Comma-separated section names",
     )
     args = parser.parse_args()
@@ -41,6 +41,7 @@ async def main() -> int:
         arxiv_id=args.arxiv_id,
         anthropic_api_key=settings.anthropic_api_key,
         fast_model=settings.decoder_model_fast,
+        deep_model=settings.decoder_model_deep,
         sections=sections,
     )
 

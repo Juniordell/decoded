@@ -14,23 +14,31 @@ from decoded.decoding.generator import GenerationResult, SectionGenerator
 logger = structlog.get_logger()
 
 # Section name → generator method name on SectionGenerator
+# Fast sections use only the abstract (Haiku)
 FAST_SECTIONS = {
     "one_sentence": "one_sentence",
     "sixty_second": "sixty_second",
 }
 
+# Deep sections need the full paper text (Sonnet)
+DEEP_SECTIONS = {
+    "deep_dive": "deep_dive",
+}
+
+ALL_SECTIONS = {**FAST_SECTIONS, **DEEP_SECTIONS}
 
 async def decode_paper(
     arxiv_id: str,
     anthropic_api_key: str,
     fast_model: str,
+    deep_model: str,
     sections: Iterable[str] | None = None,
 ) -> dict:
     """
     Generate the given sections for one paper (by arxiv_id), store results.
-    Default: all fast sections (one_sentence, sixty_second).
+    Default: all sections.
     """
-    sections = list(sections) if sections else list(FAST_SECTIONS.keys())
+    sections = list(sections) if sections else list(ALL_SECTIONS.keys())
     log = logger.bind(arxiv_id=arxiv_id, sections=sections)
     log.info("decode.start")
 
@@ -38,7 +46,6 @@ async def decode_paper(
         api_key=anthropic_api_key,
         fast_model=fast_model,
     ) as gen:
-        # Load the paper
         stmt = (
             select(Paper)
             .options(selectinload(Paper.parsed_content))
@@ -57,44 +64,64 @@ async def decode_paper(
         total_cost = 0.0
 
         for section_name in sections:
-            method_name = FAST_SECTIONS.get(section_name)
-            if not method_name:
+            if section_name not in ALL_SECTIONS:
                 log.warning("decode.unknown_section", section=section_name)
                 continue
 
-            method = getattr(gen, method_name)
             try:
-                result: GenerationResult = await method(
-                    title=paper.title,
-                    abstract=paper.abstract,
-                )
+                # Route to the right method
+                if section_name in FAST_SECTIONS:
+                    method = getattr(gen, ALL_SECTIONS[section_name])
+                    gen_result: GenerationResult = await method(
+                        title=paper.title,
+                        abstract=paper.abstract,
+                    )
+                elif section_name in DEEP_SECTIONS:
+                    if not paper.parsed_content or not paper.parsed_content.markdown:
+                        log.warning(
+                            "decode.no_parsed_content",
+                            section=section_name,
+                            hint="run parse stage first",
+                        )
+                        outcomes[section_name] = {"error": "no_parsed_content"}
+                        continue
+
+                    method = getattr(gen, ALL_SECTIONS[section_name])
+                    gen_result = await method(
+                        title=paper.title,
+                        abstract=paper.abstract,
+                        full_text=paper.parsed_content.markdown,
+                        deep_model=deep_model,
+                    )
+                else:
+                    continue
 
                 await decoded_repo.upsert_section(
                     paper_id=paper.id,
                     section=section_name,
-                    content=result.content,
-                    model=result.model,
-                    prompt_version=result.prompt_version,
-                    input_tokens=result.input_tokens,
-                    output_tokens=result.output_tokens,
-                    cost_usd=result.cost_usd,
-                    latency_ms=result.latency_ms,
+                    content=gen_result.content,
+                    model=gen_result.model,
+                    prompt_version=gen_result.prompt_version,
+                    input_tokens=gen_result.input_tokens,
+                    output_tokens=gen_result.output_tokens,
+                    cost_usd=gen_result.cost_usd,
+                    latency_ms=gen_result.latency_ms,
                 )
                 await session.commit()
 
                 outcomes[section_name] = {
-                    "cost_usd": round(result.cost_usd, 6),
-                    "latency_ms": result.latency_ms,
-                    "cache_hit_tokens": result.cache_read_tokens,
+                    "cost_usd": round(gen_result.cost_usd, 6),
+                    "latency_ms": gen_result.latency_ms,
+                    "input_tokens": gen_result.input_tokens,
+                    "output_tokens": gen_result.output_tokens,
                 }
-                total_cost += result.cost_usd
+                total_cost += gen_result.cost_usd
 
             except Exception as e:
                 await session.rollback()
                 log.error("decode.section_failed", section=section_name, error=str(e))
                 outcomes[section_name] = {"error": str(e)}
 
-        # Update paper status if all decoded sections succeeded
         if all("error" not in v for v in outcomes.values()):
             paper.status = IngestionStatus.DECODED
             await session.commit()

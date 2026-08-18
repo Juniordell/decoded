@@ -9,11 +9,12 @@ from anthropic import AsyncAnthropic
 from anthropic.types.message import Message
 
 from decoded.decoding.prompts import (
+    DEEP_DIVE_SYSTEM,
     ONE_SENTENCE_SYSTEM,
     SIXTY_SECOND_SYSTEM,
     VERSION,
 )
-from decoded.decoding.schemas import OneSentence, SixtySecondRead
+from decoded.decoding.schemas import DeepDive, OneSentence, SixtySecondRead
 
 logger = structlog.get_logger()
 
@@ -117,6 +118,27 @@ class SectionGenerator:
             max_tokens=800,
         )
 
+    async def deep_dive(
+        self,
+        title: str,
+        abstract: str,
+        full_text: str,
+        deep_model: str,
+    ) -> GenerationResult:
+        """Generate the 5-section deep dive. Sonnet, uses full paper text."""
+        from decoded.decoding.token_utils import budget_for_full_text, truncate_to_tokens
+
+        budget = budget_for_full_text(title, abstract, DEEP_DIVE_SYSTEM)
+        safe_text = truncate_to_tokens(full_text, budget)
+
+        return await self._generate(
+            response_model=DeepDive,
+            system_prompt=DEEP_DIVE_SYSTEM,
+            user_content=_paper_context_full(title, abstract, safe_text),
+            model=deep_model,
+            max_tokens=4000,
+        )
+
     async def _generate(
         self,
         response_model,
@@ -179,9 +201,15 @@ class SectionGenerator:
         )
 
 
-def _paper_context(title: str, abstract: str) -> str:
-    """Format paper context sent to the LLM."""
+def _paper_context_full(title: str, abstract: str, full_text: str) -> str:
+    """Format full-paper context sent to the LLM."""
     return f"""Paper title: {title}
 
 Paper abstract:
-{abstract}"""
+{abstract}
+
+---
+
+Full paper text (parsed from PDF):
+
+{full_text}"""
