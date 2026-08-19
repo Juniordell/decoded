@@ -114,13 +114,28 @@ class Analogy(BaseModel):
     concept: str = Field(
         ...,
         description="The technical concept being explained (e.g. 'attention mechanism').",
-        max_length=100,
+        max_length=200,
     )
     analogy: str = Field(
         ...,
         description="The plain-world analogy. 2-4 sentences.",
         max_length=800,
     )
+
+
+class AnalogySet(BaseModel):
+    """Three candidate analogies for one concept — before judging."""
+    concept: str = Field(..., max_length=200)
+    candidates: list[Analogy] = Field(default_factory=list, max_length=3)
+
+
+class ConceptList(BaseModel):
+    """Just a list of concept names to generate analogies for."""
+    concepts: list[str] = Field(default_factory=list, max_length=5)
+
+
+class ExtractedTerms(BaseModel):
+    terms: list[str] = Field(default_factory=list, max_length=15)
 
 
 class Analogies(BaseModel):

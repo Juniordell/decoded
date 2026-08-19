@@ -9,25 +9,30 @@ from anthropic import AsyncAnthropic
 from anthropic.types.message import Message
 
 from decoded.decoding.prompts import (
-    DEEP_DIVE_SYSTEM,
-    ONE_SENTENCE_SYSTEM,
-    SIXTY_SECOND_SYSTEM,
-    VERSION,
-)
-from decoded.decoding.schemas import DeepDive, OneSentence, SixtySecondRead
-from decoded.decoding.prompts import (
+    ANALOGY_GENERATE_SYSTEM,
+    ANALOGY_JUDGE_SYSTEM,
+    CONCEPT_EXTRACT_SYSTEM,
     DEEP_DIVE_SYSTEM,
     FIGURE_EXPLANATION_SYSTEM,
     ONE_SENTENCE_SYSTEM,
     SIXTY_SECOND_SYSTEM,
+    VOCAB_DEFINE_SYSTEM,
+    VOCAB_EXTRACT_SYSTEM,
     VERSION,
 )
 from decoded.decoding.schemas import (
+    Analogies,
+    Analogy,
+    AnalogySet,
+    ConceptList,
     DeepDive,
+    ExtractedTerms,
     FigureExplained,
     FiguresExplained,
     OneSentence,
     SixtySecondRead,
+    VocabTerm,
+    Vocabulary,
 )
 
 logger = structlog.get_logger()
@@ -85,6 +90,19 @@ def _compute_cost(usage: dict, model: str) -> float:
         + (cache_write * prices["cache_write"] / 1_000_000)
     )
 
+def _empty_generation(model_obj, model_name: str, start: float) -> GenerationResult:
+    """Return an empty GenerationResult when a stage produces nothing worth costing."""
+    return GenerationResult(
+        content=model_obj.model_dump(),
+        model=model_name,
+        prompt_version=VERSION,
+        input_tokens=0,
+        output_tokens=0,
+        cache_read_tokens=0,
+        cache_write_tokens=0,
+        cost_usd=0.0,
+        latency_ms=int((time.perf_counter() - start) * 1000),
+    )
 
 class SectionGenerator:
     """Generates decoded sections. Uses Anthropic + Instructor + prompt caching."""
@@ -245,6 +263,222 @@ class SectionGenerator:
         return GenerationResult(
             content=wrapped.model_dump(),
             model=deep_model,
+            prompt_version=VERSION,
+            input_tokens=total_input,
+            output_tokens=total_output,
+            cache_read_tokens=total_cache_read,
+            cache_write_tokens=total_cache_write,
+            cost_usd=total_cost,
+            latency_ms=latency_ms,
+        )
+
+    async def vocabulary(
+        self,
+        deep_dive_text: str,
+    ) -> GenerationResult:
+        """
+        Two-stage: extract technical terms → define each.
+        Uses Haiku for both stages.
+        """
+        start = time.perf_counter()
+
+        # Stage 1: extract terms
+        extract_result, extract_raw = await self._client.messages.create_with_completion(
+            model=self._fast_model,
+            max_tokens=500,
+            system=[
+                {
+                    "type": "text",
+                    "text": VOCAB_EXTRACT_SYSTEM,
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ],
+            messages=[{"role": "user", "content": deep_dive_text}],
+            response_model=ExtractedTerms,
+            max_retries=2,
+        )
+
+        terms = extract_result.terms
+        if not terms:
+            wrapped = Vocabulary(terms=[])
+            return _empty_generation(
+                wrapped, self._fast_model, start
+            )
+
+        # Stage 2: define each term. Batch into one call to save round-trips.
+        term_list = "\n".join(f"- {t}" for t in terms)
+        user_msg = (
+            f"Paper summary (for context):\n\n{deep_dive_text}\n\n"
+            f"Terms to define:\n{term_list}"
+        )
+
+        define_result, define_raw = await self._client.messages.create_with_completion(
+            model=self._fast_model,
+            max_tokens=2000,
+            system=[
+                {
+                    "type": "text",
+                    "text": VOCAB_DEFINE_SYSTEM,
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ],
+            messages=[{"role": "user", "content": user_msg}],
+            response_model=Vocabulary,
+            max_retries=2,
+        )
+
+        latency_ms = int((time.perf_counter() - start) * 1000)
+
+        extract_usage = extract_raw.usage.model_dump() if hasattr(extract_raw.usage, "model_dump") else dict(extract_raw.usage)
+        define_usage = define_raw.usage.model_dump() if hasattr(define_raw.usage, "model_dump") else dict(define_raw.usage)
+
+        total_input = extract_usage.get("input_tokens", 0) + define_usage.get("input_tokens", 0)
+        total_output = extract_usage.get("output_tokens", 0) + define_usage.get("output_tokens", 0)
+        total_cost = _compute_cost(extract_usage, self._fast_model) + _compute_cost(define_usage, self._fast_model)
+
+        logger.info(
+            "vocabulary.done",
+            terms_extracted=len(terms),
+            terms_defined=len(define_result.terms),
+            input_tokens=total_input,
+            output_tokens=total_output,
+            cost_usd=round(total_cost, 6),
+            latency_ms=latency_ms,
+        )
+
+        return GenerationResult(
+            content=define_result.model_dump(),
+            model=self._fast_model,
+            prompt_version=VERSION,
+            input_tokens=total_input,
+            output_tokens=total_output,
+            cache_read_tokens=(extract_usage.get("cache_read_input_tokens", 0) or 0) + (define_usage.get("cache_read_input_tokens", 0) or 0),
+            cache_write_tokens=(extract_usage.get("cache_creation_input_tokens", 0) or 0) + (define_usage.get("cache_creation_input_tokens", 0) or 0),
+            cost_usd=total_cost,
+            latency_ms=latency_ms,
+        )
+
+    async def analogies(
+        self,
+        deep_dive_text: str,
+    ) -> GenerationResult:
+        """
+        Three-stage: extract concepts → 3 candidates per concept → judge picks best.
+        Uses Haiku throughout (cheap, extractive-ish).
+        """
+        start = time.perf_counter()
+
+        # Stage 1: extract concepts
+        concept_result, concept_raw = await self._client.messages.create_with_completion(
+            model=self._fast_model,
+            max_tokens=300,
+            system=[
+                {
+                    "type": "text",
+                    "text": CONCEPT_EXTRACT_SYSTEM,
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ],
+            messages=[{"role": "user", "content": deep_dive_text}],
+            response_model=ConceptList,
+            max_retries=2,
+        )
+
+        concepts = concept_result.concepts
+        if not concepts:
+            wrapped = Analogies(items=[])
+            return _empty_generation(wrapped, self._fast_model, start)
+
+        chosen: list[Analogy] = []
+        total_input = concept_raw.usage.input_tokens
+        total_output = concept_raw.usage.output_tokens
+        total_cost = _compute_cost(concept_raw.usage.model_dump() if hasattr(concept_raw.usage, "model_dump") else dict(concept_raw.usage), self._fast_model)
+        total_cache_read = concept_raw.usage.cache_read_input_tokens or 0
+        total_cache_write = concept_raw.usage.cache_creation_input_tokens or 0
+
+        # Stages 2 + 3: for each concept, generate 3 and judge
+        for concept in concepts:
+            gen_result, gen_raw = await self._client.messages.create_with_completion(
+                model=self._fast_model,
+                max_tokens=1500,
+                system=[
+                    {
+                        "type": "text",
+                        "text": ANALOGY_GENERATE_SYSTEM,
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ],
+                messages=[
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Paper context:\n\n{deep_dive_text[:2000]}\n\n"
+                            f"Concept to explain: {concept}\n\n"
+                            "Produce three candidate analogies."
+                        ),
+                    }
+                ],
+                response_model=AnalogySet,
+                max_retries=2,
+            )
+
+            gen_usage = gen_raw.usage.model_dump() if hasattr(gen_raw.usage, "model_dump") else dict(gen_raw.usage)
+            total_input += gen_usage.get("input_tokens", 0)
+            total_output += gen_usage.get("output_tokens", 0)
+            total_cost += _compute_cost(gen_usage, self._fast_model)
+            total_cache_read += gen_usage.get("cache_read_input_tokens", 0) or 0
+            total_cache_write += gen_usage.get("cache_creation_input_tokens", 0) or 0
+
+            if not gen_result.candidates:
+                continue
+
+            # Stage 3: judge picks best
+            candidates_text = "\n\n".join(
+                f"Candidate {i+1}:\nConcept: {c.concept}\nAnalogy: {c.analogy}"
+                for i, c in enumerate(gen_result.candidates)
+            )
+
+            judge_result, judge_raw = await self._client.messages.create_with_completion(
+                model=self._fast_model,
+                max_tokens=800,
+                system=[
+                    {
+                        "type": "text",
+                        "text": ANALOGY_JUDGE_SYSTEM,
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ],
+                messages=[{"role": "user", "content": candidates_text}],
+                response_model=Analogy,
+                max_retries=2,
+            )
+
+            judge_usage = judge_raw.usage.model_dump() if hasattr(judge_raw.usage, "model_dump") else dict(judge_raw.usage)
+            total_input += judge_usage.get("input_tokens", 0)
+            total_output += judge_usage.get("output_tokens", 0)
+            total_cost += _compute_cost(judge_usage, self._fast_model)
+            total_cache_read += judge_usage.get("cache_read_input_tokens", 0) or 0
+            total_cache_write += judge_usage.get("cache_creation_input_tokens", 0) or 0
+
+            chosen.append(judge_result)
+            logger.info("analogy.chosen", concept=concept)
+
+        wrapped = Analogies(items=chosen)
+        latency_ms = int((time.perf_counter() - start) * 1000)
+
+        logger.info(
+            "analogies.done",
+            concepts=len(concepts),
+            chosen=len(chosen),
+            input_tokens=total_input,
+            output_tokens=total_output,
+            cost_usd=round(total_cost, 6),
+            latency_ms=latency_ms,
+        )
+
+        return GenerationResult(
+            content=wrapped.model_dump(),
+            model=self._fast_model,
             prompt_version=VERSION,
             input_tokens=total_input,
             output_tokens=total_output,

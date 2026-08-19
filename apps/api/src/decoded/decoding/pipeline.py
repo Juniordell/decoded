@@ -14,6 +14,7 @@ from decoded.decoding.figure_extractor import (
     download_pdf,
     extract_figures_from_pdf_bytes,
 )
+from decoded.decoding.prompts import VERSION
 
 logger = structlog.get_logger()
 
@@ -32,7 +33,24 @@ VISION_SECTIONS = {
     "figures": "figures",
 }
 
-ALL_SECTIONS = {**FAST_SECTIONS, **DEEP_SECTIONS, **VISION_SECTIONS}
+# Didactic sections need the deep_dive to already exist
+DIDACTIC_SECTIONS = {
+    "vocabulary": "vocabulary",
+    "analogies": "analogies",
+}
+
+ALL_SECTIONS = {**FAST_SECTIONS, **DEEP_SECTIONS, **VISION_SECTIONS, **DIDACTIC_SECTIONS}
+
+def _flatten_deep_dive(dd_content: dict) -> str:
+    """Turn the DeepDive JSON structure into flat text for downstream sections."""
+    parts = []
+    for section_key in ("setup", "idea", "method", "results", "implications"):
+        section = dd_content.get(section_key)
+        if section:
+            heading = section.get("heading", section_key)
+            body = section.get("body", "")
+            parts.append(f"## {heading}\n\n{body}")
+    return "\n\n".join(parts)
 
 async def decode_paper(
     arxiv_id: str,
@@ -71,6 +89,16 @@ async def decode_paper(
         total_cost = 0.0
 
         for section_name in sections:
+            decoded_repo = DecodedContentsRepository(session)
+
+            # Preload existing decoded sections (needed by didactic sections)
+            existing_sections = await decoded_repo.get_all_sections(
+                paper_id=paper.id,
+                prompt_version=VERSION,
+            )
+
+            outcomes: dict[str, dict] = {}
+            total_cost = 0.0
             if section_name not in ALL_SECTIONS:
                 log.warning("decode.unknown_section", section=section_name)
                 continue
@@ -130,6 +158,25 @@ async def decode_paper(
                         figures_data=figures_data,
                         deep_model=deep_model,
                     )
+
+                elif section_name in DIDACTIC_SECTIONS:
+                    # Need deep_dive as source material
+                    deep_dive_row = existing_sections.get("deep_dive")
+                    if deep_dive_row is None:
+                        log.warning(
+                            "decode.no_deep_dive",
+                            section=section_name,
+                            hint="generate deep_dive first",
+                        )
+                        outcomes[section_name] = {"error": "no_deep_dive"}
+                        continue
+
+                    # Flatten the deep_dive JSON into text
+                    dd_content = deep_dive_row.content
+                    deep_dive_text = _flatten_deep_dive(dd_content)
+
+                    method = getattr(gen, DIDACTIC_SECTIONS[section_name])
+                    gen_result = await method(deep_dive_text=deep_dive_text)
 
                 else:
                     continue
