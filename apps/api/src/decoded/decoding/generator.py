@@ -15,6 +15,20 @@ from decoded.decoding.prompts import (
     VERSION,
 )
 from decoded.decoding.schemas import DeepDive, OneSentence, SixtySecondRead
+from decoded.decoding.prompts import (
+    DEEP_DIVE_SYSTEM,
+    FIGURE_EXPLANATION_SYSTEM,
+    ONE_SENTENCE_SYSTEM,
+    SIXTY_SECOND_SYSTEM,
+    VERSION,
+)
+from decoded.decoding.schemas import (
+    DeepDive,
+    FigureExplained,
+    FiguresExplained,
+    OneSentence,
+    SixtySecondRead,
+)
 
 logger = structlog.get_logger()
 
@@ -137,6 +151,107 @@ class SectionGenerator:
             user_content=_paper_context_full(title, abstract, safe_text),
             model=deep_model,
             max_tokens=4000,
+        )
+
+    async def explain_figure(
+        self,
+        image_b64: str,
+        media_type: str,
+        nearby_text: str,
+        deep_model: str,
+    ) -> tuple[FigureExplained, dict]:
+        """Explain a single figure. Returns (parsed, raw_usage_dict)."""
+        start = time.perf_counter()
+
+        system_blocks = [
+            {
+                "type": "text",
+                "text": FIGURE_EXPLANATION_SYSTEM,
+                "cache_control": {"type": "ephemeral"},
+            }
+        ]
+
+        user_content = [
+            {
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": media_type,
+                    "data": image_b64,
+                },
+            },
+            {
+                "type": "text",
+                "text": f"Text from the same page (for context):\n\n{nearby_text}",
+            },
+        ]
+
+        result, raw = await self._client.messages.create_with_completion(
+            model=deep_model,
+            max_tokens=800,
+            system=system_blocks,
+            messages=[{"role": "user", "content": user_content}],
+            response_model=FigureExplained,
+            max_retries=2,
+        )
+
+        usage = raw.usage.model_dump() if hasattr(raw.usage, "model_dump") else dict(raw.usage)
+        usage["_latency_ms"] = int((time.perf_counter() - start) * 1000)
+        return result, usage
+
+    async def figures(
+        self,
+        figures_data: list[dict],
+        deep_model: str,
+    ) -> GenerationResult:
+        """
+        Explain a batch of figures. Aggregates cost + latency across all Vision calls.
+
+        figures_data: [{"image_b64": ..., "media_type": ..., "nearby_text": ...}, ...]
+        """
+        start = time.perf_counter()
+        explained: list[FigureExplained] = []
+
+        total_input = 0
+        total_output = 0
+        total_cache_read = 0
+        total_cache_write = 0
+        total_cost = 0.0
+
+        for fig in figures_data:
+            parsed, usage = await self.explain_figure(
+                image_b64=fig["image_b64"],
+                media_type=fig["media_type"],
+                nearby_text=fig["nearby_text"],
+                deep_model=deep_model,
+            )
+            explained.append(parsed)
+
+            total_input += usage.get("input_tokens", 0)
+            total_output += usage.get("output_tokens", 0)
+            total_cache_read += usage.get("cache_read_input_tokens", 0) or 0
+            total_cache_write += usage.get("cache_creation_input_tokens", 0) or 0
+            total_cost += _compute_cost(usage, deep_model)
+
+            logger.info(
+                "figure.explained",
+                figure_ref=parsed.figure_ref,
+                latency_ms=usage["_latency_ms"],
+            )
+
+        wrapped = FiguresExplained(items=explained)
+        latency_ms = int((time.perf_counter() - start) * 1000)
+
+        return GenerationResult(
+            content=wrapped.model_dump(),
+            model=deep_model,
+            prompt_version=VERSION,
+            input_tokens=total_input,
+            output_tokens=total_output,
+            cache_read_tokens=total_cache_read,
+            cache_write_tokens=total_cache_write,
+            cost_usd=total_cost,
+            latency_ms=latency_ms,
         )
 
     async def _generate(

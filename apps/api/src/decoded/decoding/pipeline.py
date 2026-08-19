@@ -10,6 +10,10 @@ from decoded.db.base import async_session_factory
 from decoded.db.models import IngestionStatus, Paper
 from decoded.db.repositories.decoded_contents import DecodedContentsRepository
 from decoded.decoding.generator import GenerationResult, SectionGenerator
+from decoded.decoding.figure_extractor import (
+    download_pdf,
+    extract_figures_from_pdf_bytes,
+)
 
 logger = structlog.get_logger()
 
@@ -20,12 +24,15 @@ FAST_SECTIONS = {
     "sixty_second": "sixty_second",
 }
 
-# Deep sections need the full paper text (Sonnet)
 DEEP_SECTIONS = {
     "deep_dive": "deep_dive",
 }
 
-ALL_SECTIONS = {**FAST_SECTIONS, **DEEP_SECTIONS}
+VISION_SECTIONS = {
+    "figures": "figures",
+}
+
+ALL_SECTIONS = {**FAST_SECTIONS, **DEEP_SECTIONS, **VISION_SECTIONS}
 
 async def decode_paper(
     arxiv_id: str,
@@ -93,6 +100,37 @@ async def decode_paper(
                         full_text=paper.parsed_content.markdown,
                         deep_model=deep_model,
                     )
+
+                elif section_name in VISION_SECTIONS:
+                    log.info("figures.extracting", pdf_url=paper.pdf_url)
+                    pdf_bytes = await download_pdf(paper.pdf_url)
+                    extraction = extract_figures_from_pdf_bytes(pdf_bytes)
+
+                    log.info(
+                        "figures.extracted",
+                        found=extraction.total_images_found,
+                        kept=len(extraction.figures),
+                        skipped_small=extraction.skipped_small,
+                        skipped_large=extraction.skipped_large,
+                    )
+
+                    if not extraction.figures:
+                        outcomes[section_name] = {"skipped": "no_figures_found"}
+                        continue
+
+                    figures_data = [
+                        {
+                            "image_b64": f.to_b64(),
+                            "media_type": f.media_type,
+                            "nearby_text": f.nearby_text,
+                        }
+                        for f in extraction.figures
+                    ]
+                    gen_result = await gen.figures(
+                        figures_data=figures_data,
+                        deep_model=deep_model,
+                    )
+
                 else:
                     continue
 

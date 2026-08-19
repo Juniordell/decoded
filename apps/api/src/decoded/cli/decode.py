@@ -24,7 +24,7 @@ async def main() -> int:
     parser.add_argument("--arxiv-id", required=True, help="arXiv ID (e.g. 2401.12345)")
     parser.add_argument(
         "--sections",
-        default="one_sentence,sixty_second,deep_dive",
+        default="one_sentence,sixty_second,deep_dive,figures",
         help="Comma-separated section names",
     )
     args = parser.parse_args()
