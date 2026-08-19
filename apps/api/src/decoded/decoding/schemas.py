@@ -159,12 +159,12 @@ class FigureExplained(BaseModel):
     plain_language: str = Field(
         ...,
         description="What this figure shows, explained for a non-expert.",
-        max_length=800,
+        max_length=2000,
     )
     key_insight: str = Field(
         ...,
         description="One sentence: why this figure matters.",
-        max_length=200,
+        max_length=400,
     )
 
 

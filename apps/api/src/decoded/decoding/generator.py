@@ -104,6 +104,10 @@ def _empty_generation(model_obj, model_name: str, start: float) -> GenerationRes
         latency_ms=int((time.perf_counter() - start) * 1000),
     )
 
+def compute_batch_cost(usage: dict, model: str) -> float:
+    """Batch API costs 50% of standard rates."""
+    return _compute_cost(usage, model) * 0.5
+
 class SectionGenerator:
     """Generates decoded sections. Uses Anthropic + Instructor + prompt caching."""
 
