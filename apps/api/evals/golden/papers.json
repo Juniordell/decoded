@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "description": "Golden set for Decoded evaluation. Diverse paper types.",
+  "papers": [
+    {
+      "arxiv_id": "2608.06294",
+      "type": "TODO: empirical | theory | survey | benchmark | position",
+      "notes": "[cs.AI] QuanTiMedAI: Quantum-Enhanced Time-Series Model guided by Agentic AI f"
+    },
+    {
+      "arxiv_id": "2608.06307",
+      "type": "TODO: empirical | theory | survey | benchmark | position",
+      "notes": "[cs.CV] UQ-Loc: Uncertainty-Aware LiDAR Scene Coordinate Regression"
+    },
+    {
+      "arxiv_id": "2608.06377",
+      "type": "TODO: empirical | theory | survey | benchmark | position",
+      "notes": "[cs.CL] Learning When to Trust via Selective Context Preference Optimization"
+    },
+    {
+      "arxiv_id": "2608.06221",
+      "type": "TODO: empirical | theory | survey | benchmark | position",
+      "notes": "[cs.RO] Robot Learning from Human Demonstrations: Handwritten Alphabet Traject"
+    },
+    {
+      "arxiv_id": "2608.06227",
+      "type": "TODO: empirical | theory | survey | benchmark | position",
+      "notes": "[cs.NI] From Passive Mirrors to Active Agents: Holonic Digital Twins for Physi"
+    }
+  ]
+}

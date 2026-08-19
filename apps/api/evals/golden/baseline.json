@@ -1,0 +1,358 @@
+{
+  "timestamp": "2026-08-19T21:44:08.897086+00:00",
+  "prompt_version": "v1",
+  "llm_metrics_enabled": false,
+  "papers_evaluated": 1,
+  "summary": {
+    "one_sentence": {
+      "papers": 1,
+      "pass_rate": 0.667,
+      "checks": "2/3"
+    },
+    "sixty_second": {
+      "papers": 1,
+      "pass_rate": 1.0,
+      "checks": "10/10"
+    },
+    "deep_dive": {
+      "papers": 1,
+      "pass_rate": 1.0,
+      "checks": "21/21"
+    },
+    "figures": {
+      "papers": 1,
+      "pass_rate": 1.0,
+      "checks": "3/3"
+    },
+    "vocabulary": {
+      "papers": 1,
+      "pass_rate": 1.0,
+      "checks": "4/4"
+    },
+    "analogies": {
+      "papers": 1,
+      "pass_rate": 1.0,
+      "checks": "3/3"
+    }
+  },
+  "results": [
+    {
+      "arxiv_id": "2608.06221",
+      "title": "Robot Learning from Human Demonstrations: Handwritten Alphabet Trajectories and Human-Likeness Evalu",
+      "sections": {
+        "one_sentence": {
+          "model": "claude-haiku-4-5-20251001",
+          "prompt_version": "v1",
+          "cost_usd": 0.0013700000000000001,
+          "deterministic": [
+            {
+              "name": "word_count",
+              "value": 23.0,
+              "passed": false,
+              "detail": "23 palavras (limite 20)"
+            },
+            {
+              "name": "jargon_free",
+              "value": 0.0,
+              "passed": true,
+              "detail": "limpo"
+            },
+            {
+              "name": "no_preamble",
+              "value": 1.0,
+              "passed": true,
+              "detail": "ok"
+            }
+          ],
+          "llm": {}
+        },
+        "sixty_second": {
+          "model": "claude-haiku-4-5-20251001",
+          "prompt_version": "v1",
+          "cost_usd": 0.002556,
+          "deterministic": [
+            {
+              "name": "problem_present",
+              "value": 1.0,
+              "passed": true,
+              "detail": "ok"
+            },
+            {
+              "name": "problem_sentence_count",
+              "value": 3.0,
+              "passed": true,
+              "detail": "3 frases (alvo 2-3)"
+            },
+            {
+              "name": "problem_jargon_free",
+              "value": 0.0,
+              "passed": true,
+              "detail": "limpo"
+            },
+            {
+              "name": "approach_present",
+              "value": 1.0,
+              "passed": true,
+              "detail": "ok"
+            },
+            {
+              "name": "approach_sentence_count",
+              "value": 2.0,
+              "passed": true,
+              "detail": "2 frases (alvo 2-3)"
+            },
+            {
+              "name": "approach_jargon_free",
+              "value": 0.0,
+              "passed": true,
+              "detail": "limpo"
+            },
+            {
+              "name": "result_present",
+              "value": 1.0,
+              "passed": true,
+              "detail": "ok"
+            },
+            {
+              "name": "result_sentence_count",
+              "value": 4.0,
+              "passed": true,
+              "detail": "4 frases (alvo 2-3)"
+            },
+            {
+              "name": "result_jargon_free",
+              "value": 0.0,
+              "passed": true,
+              "detail": "limpo"
+            },
+            {
+              "name": "result_has_numbers",
+              "value": 1.0,
+              "passed": true,
+              "detail": "ok"
+            }
+          ],
+          "llm": {}
+        },
+        "deep_dive": {
+          "model": "claude-sonnet-4-6",
+          "prompt_version": "v1",
+          "cost_usd": 0.17904884999999998,
+          "deterministic": [
+            {
+              "name": "setup_present",
+              "value": 1.0,
+              "passed": true,
+              "detail": "ok"
+            },
+            {
+              "name": "setup_heading_specific",
+              "value": 1.0,
+              "passed": true,
+              "detail": "'Teaching robots to move like humans \u2014 without the data to prove it works'"
+            },
+            {
+              "name": "setup_length",
+              "value": 138.0,
+              "passed": true,
+              "detail": "138 palavras (alvo 40-250)"
+            },
+            {
+              "name": "setup_jargon_free",
+              "value": 0.0,
+              "passed": true,
+              "detail": "limpo"
+            },
+            {
+              "name": "idea_present",
+              "value": 1.0,
+              "passed": true,
+              "detail": "ok"
+            },
+            {
+              "name": "idea_heading_specific",
+              "value": 1.0,
+              "passed": true,
+              "detail": "'Force and timing are not decoration \u2014 they are what makes motion feel human'"
+            },
+            {
+              "name": "idea_length",
+              "value": 80.0,
+              "passed": true,
+              "detail": "80 palavras (alvo 40-250)"
+            },
+            {
+              "name": "idea_jargon_free",
+              "value": 0.0,
+              "passed": true,
+              "detail": "limpo"
+            },
+            {
+              "name": "method_present",
+              "value": 1.0,
+              "passed": true,
+              "detail": "ok"
+            },
+            {
+              "name": "method_heading_specific",
+              "value": 1.0,
+              "passed": true,
+              "detail": "'Touchscreen teleoperation in, segmented GMM+GMR out'"
+            },
+            {
+              "name": "method_length",
+              "value": 226.0,
+              "passed": true,
+              "detail": "226 palavras (alvo 40-250)"
+            },
+            {
+              "name": "method_jargon_free",
+              "value": 0.0,
+              "passed": true,
+              "detail": "limpo"
+            },
+            {
+              "name": "results_present",
+              "value": 1.0,
+              "passed": true,
+              "detail": "ok"
+            },
+            {
+              "name": "results_heading_specific",
+              "value": 1.0,
+              "passed": true,
+              "detail": "'71.5 out of 100, with round letters winning and angular letters losing'"
+            },
+            {
+              "name": "results_length",
+              "value": 133.0,
+              "passed": true,
+              "detail": "133 palavras (alvo 40-250)"
+            },
+            {
+              "name": "results_jargon_free",
+              "value": 0.0,
+              "passed": true,
+              "detail": "limpo"
+            },
+            {
+              "name": "implications_present",
+              "value": 1.0,
+              "passed": true,
+              "detail": "ok"
+            },
+            {
+              "name": "implications_heading_specific",
+              "value": 1.0,
+              "passed": true,
+              "detail": "'A perceptual bar is set \u2014 but simulation, scale, and comparisons are missing'"
+            },
+            {
+              "name": "implications_length",
+              "value": 153.0,
+              "passed": true,
+              "detail": "153 palavras (alvo 40-250)"
+            },
+            {
+              "name": "implications_jargon_free",
+              "value": 0.0,
+              "passed": true,
+              "detail": "limpo"
+            },
+            {
+              "name": "readability_grade",
+              "value": 12.73561739807337,
+              "passed": true,
+              "detail": "Flesch-Kincaid 12.7 (alvo 6-16)"
+            }
+          ],
+          "llm": {}
+        },
+        "figures": {
+          "model": "claude-sonnet-4-6",
+          "prompt_version": "v1",
+          "cost_usd": 0.0059883,
+          "deterministic": [
+            {
+              "name": "figure_count",
+              "value": 1.0,
+              "passed": true,
+              "detail": "1 figuras explicadas"
+            },
+            {
+              "name": "figures_complete",
+              "value": 0.0,
+              "passed": true,
+              "detail": "ok"
+            },
+            {
+              "name": "insights_concise",
+              "value": 0.0,
+              "passed": true,
+              "detail": "ok"
+            }
+          ],
+          "llm": {}
+        },
+        "vocabulary": {
+          "model": "claude-haiku-4-5-20251001",
+          "prompt_version": "v1",
+          "cost_usd": 0.009762999999999999,
+          "deterministic": [
+            {
+              "name": "term_count",
+              "value": 15.0,
+              "passed": true,
+              "detail": "15 termos (alvo 3-20)"
+            },
+            {
+              "name": "definitions_concise",
+              "value": 0.0,
+              "passed": true,
+              "detail": "ok"
+            },
+            {
+              "name": "definitions_not_circular",
+              "value": 0.0,
+              "passed": true,
+              "detail": "ok"
+            },
+            {
+              "name": "no_duplicate_terms",
+              "value": 0.0,
+              "passed": true,
+              "detail": "ok"
+            }
+          ],
+          "llm": {}
+        },
+        "analogies": {
+          "model": "claude-haiku-4-5-20251001",
+          "prompt_version": "v1",
+          "cost_usd": 0.035601999999999995,
+          "deterministic": [
+            {
+              "name": "analogy_count",
+              "value": 5.0,
+              "passed": true,
+              "detail": "5 analogias (alvo 2-5)"
+            },
+            {
+              "name": "analogies_jargon_free",
+              "value": 0.0,
+              "passed": true,
+              "detail": "limpo"
+            },
+            {
+              "name": "analogies_length",
+              "value": 0.0,
+              "passed": true,
+              "detail": "ok"
+            }
+          ],
+          "llm": {}
+        }
+      }
+    }
+  ]
+}

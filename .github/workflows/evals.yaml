@@ -1,0 +1,67 @@
+name: Eval Gate
+
+on:
+  pull_request:
+    paths:
+      - "apps/api/src/decoded/decoding/**"
+      - "apps/api/evals/**"
+
+jobs:
+  eval-gate:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: decoded
+          POSTGRES_USER: decoded
+          POSTGRES_PASSWORD: decoded_dev
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Install dependencies
+        working-directory: apps/api
+        run: poetry install --with dev
+
+      - name: Run migrations
+        working-directory: apps/api
+        env:
+          DATABASE_URL: postgresql+asyncpg://decoded:decoded_dev@localhost:5432/decoded
+        run: poetry run alembic upgrade head
+
+      - name: Restore golden fixtures
+        working-directory: apps/api
+        env:
+          DATABASE_URL: postgresql+asyncpg://decoded:decoded_dev@localhost:5432/decoded
+        run: |
+          if [ -f evals/golden/fixtures.sql ]; then
+            PGPASSWORD=decoded_dev psql -h localhost -U decoded -d decoded -f evals/golden/fixtures.sql
+          else
+            echo "Sem fixtures — pulando eval gate"
+            exit 0
+          fi
+
+      - name: Run evaluation (deterministic only)
+        working-directory: apps/api
+        env:
+          DATABASE_URL: postgresql+asyncpg://decoded:decoded_dev@localhost:5432/decoded
+        run: poetry run python evals/runner.py --no-llm
+
+      - name: Check regression gate
+        working-directory: apps/api
+        run: poetry run python evals/gate.py

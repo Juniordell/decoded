@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 SCHEMA_VERSION = 1
 
@@ -26,10 +26,20 @@ class OneSentence(BaseModel):
     text: str = Field(
         ...,
         description="One sentence, under 20 words, that captures what this paper does. "
-                    "Plain language. No jargon.",
+                    "Plain language. No jargon. HARD LIMIT: 20 words maximum.",
         max_length=200,
     )
 
+    @field_validator("text")
+    @classmethod
+    def enforce_word_limit(cls, v: str) -> str:
+        words = len(v.split())
+        if words > 20:
+            raise ValueError(
+                f"Sentence has {words} words. Hard limit is 20. "
+                f"Rewrite it shorter — cut adjectives, drop qualifiers, tighten the verb."
+            )
+        return v
 
 # ============================================================
 # 2. 60-Second Read

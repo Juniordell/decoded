@@ -235,3 +235,5 @@ poetry.lock
 .vscode/
 .idea/
 *.swp
+
+apps/api/evals/results/
