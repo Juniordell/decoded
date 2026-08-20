@@ -34,4 +34,9 @@ class Settings(BaseSettings):
     decoder_model_deep: str = "claude-sonnet-4-6"
     decoder_prompt_version: str = "v1"
 
+    cors_origins: list[str] = [
+        "http://localhost:3000",
+        "https://turbo-cod-q4jwrjw96qpc99ww-3000.app.github.dev/",
+    ]
+
 settings = Settings()

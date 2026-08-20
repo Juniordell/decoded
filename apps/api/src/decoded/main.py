@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
+from decoded.api.papers import router as papers_router
 from decoded.config import settings
 from decoded.logging import configure_logging, logger
 
@@ -20,6 +22,16 @@ app = FastAPI(
     version=settings.version,
     lifespan=lifespan,
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(papers_router)
 
 
 @app.get("/v1/health")

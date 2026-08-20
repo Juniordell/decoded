@@ -237,3 +237,10 @@ poetry.lock
 *.swp
 
 apps/api/evals/results/
+
+# Next.js
+apps/web/.next/
+apps/web/out/
+apps/web/node_modules/
+apps/web/.env.local
+node_modules/
