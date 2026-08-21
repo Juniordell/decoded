@@ -2,7 +2,12 @@
 
 COMPOSE := docker compose -f infra/compose.yaml
 
+# Sobe só a infraestrutura, sem a api
 up:
+	$(COMPOSE) up -d postgres qdrant redis
+
+# Sobe tudo, incluindo o container da api (teste de build)
+up-all:
 	$(COMPOSE) up -d
 
 down:

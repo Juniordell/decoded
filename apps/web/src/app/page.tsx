@@ -1,58 +1,77 @@
+import { Suspense } from "react";
+import { CategoryFilter } from "@/components/category-filter";
+import { FeedList } from "@/components/feed-list";
+import { PaperCardSkeleton } from "@/components/paper-card";
 import { api } from "@/lib/api";
 
-export default async function Home() {
-  let feed;
+export const revalidate = 300; // ISR: revalida a cada 5 min
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string; decoded?: string }>;
+}) {
+  const params = await searchParams;
+  const category = params.category;
+  const decodedOnly = params.decoded === "1";
+
+  let initialData;
   let error: string | null = null;
 
   try {
-    feed = await api.getFeed({ limit: 5 });
+    initialData = await api.getFeed({ limit: 20, category, decodedOnly });
   } catch (e) {
-    error = e instanceof Error ? e.message : "Erro desconhecido";
+    error = e instanceof Error ? e.message : "Unknown error";
   }
 
   return (
-    <main className="mx-auto max-w-3xl p-8">
-      <h1 className="text-3xl font-bold">Decoded</h1>
-      <p className="mt-2 text-slate-600">AI research, explained for humans.</p>
+    <main className="mx-auto max-w-2xl px-6 py-12">
+      <div className="mb-10">
+        <h1 className="font-serif text-4xl leading-tight tracking-tight sm:text-5xl">
+          Every AI paper,
+          <br />
+          <span className="text-accent">explained for humans.</span>
+        </h1>
+        <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
+          New research from arXiv, decoded into TL;DRs, deep dives, figure
+          explanations, and analogies. No PhD required.
+        </p>
+      </div>
 
-      {error && (
-        <div className="mt-8 rounded border border-red-300 bg-red-50 p-4 text-red-800">
-          <strong>API não respondeu:</strong> {error}
-          <p className="mt-2 text-sm">
-            A API está rodando em {process.env.NEXT_PUBLIC_API_URL}?
+      <Suspense
+        fallback={
+          <div className="h-8 border-b border-border" />
+        }
+      >
+        <CategoryFilter />
+      </Suspense>
+
+      {error ? (
+        <div className="mt-8 border border-destructive/40 bg-destructive/5 p-5">
+          <p className="font-mono text-xs uppercase tracking-[0.14em] text-destructive">
+            API unreachable
           </p>
+          <p className="mt-2 text-sm text-muted-foreground">{error}</p>
         </div>
-      )}
-
-      {feed && (
-        <>
-          <p className="mt-8 text-sm text-slate-500">
-            {feed.total} papers no banco
-          </p>
-          <ul className="mt-4 space-y-4">
-            {feed.papers.map((p) => (
-              <li key={p.arxiv_id} className="rounded border p-4">
-                <div className="text-xs text-slate-400">{p.arxiv_id}</div>
-                <div className="font-medium">{p.title}</div>
-                {p.one_sentence && (
-                  <div className="mt-2 text-sm text-slate-600">
-                    {p.one_sentence}
-                  </div>
-                )}
-                <div className="mt-2 flex gap-3 text-xs text-slate-400">
-                  <span>prio {p.priority_score.toFixed(1)}</span>
-                  <span>{p.citation_count} citações</span>
-                  {p.is_decoded && (
-                    <span className="text-green-600">
-                      decodificado ({p.decoded_sections.length} seções)
-                    </span>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+      ) : initialData ? (
+        <div className="mt-2">
+          <Suspense
+            fallback={
+              <>
+                <PaperCardSkeleton />
+                <PaperCardSkeleton />
+                <PaperCardSkeleton />
+              </>
+            }
+          >
+            <FeedList
+              initialData={initialData}
+              category={category}
+              decodedOnly={decodedOnly}
+            />
+          </Suspense>
+        </div>
+      ) : null}
     </main>
   );
 }
