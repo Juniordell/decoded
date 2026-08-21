@@ -24,6 +24,7 @@ dependencies = [
     "anthropic (>=0.122.0,<0.123.0)",
     "instructor (>=1.15.4,<2.0.0)",
     "pymupdf (>=1.28.2,<2.0.0)",
+    "cohere (>=7.0.9,<8.0.0)",
 ]
 
 [tool.poetry]

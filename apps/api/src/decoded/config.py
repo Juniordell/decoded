@@ -39,4 +39,9 @@ class Settings(BaseSettings):
         "https://turbo-cod-q4jwrjw96qpc99ww-3000.app.github.dev/",
     ]
 
+    cohere_api_key: Optional[str] = None
+    rerank_model: str = "rerank-v3.5"
+    search_retrieve_k: int = 40   # candidatos do Qdrant
+    search_return_k: int = 10     # resultados finais
+
 settings = Settings()

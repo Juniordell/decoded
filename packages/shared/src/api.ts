@@ -44,6 +44,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search */
+        get: operations["search_v1_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/health": {
         parameters: {
             query?: never;
@@ -181,6 +198,45 @@ export interface components {
             /** Decoded At */
             decoded_at?: string | null;
         };
+        /** SearchHit */
+        SearchHit: {
+            /** Arxiv Id */
+            arxiv_id: string;
+            /** Title */
+            title: string;
+            /** One Sentence */
+            one_sentence?: string | null;
+            /**
+             * Snippet
+             * @description Trecho do paper que casou com a busca
+             */
+            snippet?: string | null;
+            /**
+             * Section
+             * @description Seção do paper de onde veio o trecho
+             */
+            section?: string | null;
+            /** Score */
+            score: number;
+            /**
+             * Published At
+             * Format: date-time
+             */
+            published_at: string;
+        };
+        /** SearchResponse */
+        SearchResponse: {
+            /** Query */
+            query: string;
+            /** Hits */
+            hits: components["schemas"]["SearchHit"][];
+            /** Total Found */
+            total_found: number;
+            /** Reranked */
+            reranked: boolean;
+            /** Latency Ms */
+            latency_ms: number;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -257,6 +313,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaperDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_v1_search_get: {
+        parameters: {
+            query: {
+                /** @description Query de busca */
+                q: string;
+                limit?: number;
+                category?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResponse"];
                 };
             };
             /** @description Validation Error */
