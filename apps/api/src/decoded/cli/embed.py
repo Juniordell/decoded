@@ -25,6 +25,7 @@ async def main() -> int:
             embedding_model_small=settings.embedding_model_small,
             embedding_model_large=settings.embedding_model_large,
             limit=10,
+            qdrant_api_key=settings.qdrant_api_key,
         )
         logger.info("cli.done", **result)
         return 0

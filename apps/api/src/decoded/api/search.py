@@ -8,6 +8,7 @@ from decoded.api.schemas import SearchHit, SearchResponse
 from decoded.config import settings
 from decoded.db.base import get_session
 from decoded.search.engine import SearchEngine
+from decoded.observability.tracing import trace_span
 
 logger = structlog.get_logger()
 
@@ -26,20 +27,38 @@ async def search(
 
     categories = [category] if category else None
 
-    async with SearchEngine(
-        openai_api_key=settings.openai_api_key,
-        qdrant_url=settings.qdrant_url,
-        embedding_model=settings.embedding_model_large,
-        cohere_api_key=settings.cohere_api_key,
-        rerank_model=settings.rerank_model,
-    ) as engine:
-        outcome = await engine.search(
-            session=session,
-            query=q,
-            retrieve_k=settings.search_retrieve_k,
-            return_k=limit,
-            categories=categories,
-            chunk_embedding_model=settings.embedding_model_small,
+    with trace_span(
+        "search",
+        input={"query": q, "category": category, "limit": limit},
+        tags=["search"],
+    ) as span:
+        async with SearchEngine(
+            openai_api_key=settings.openai_api_key,
+            qdrant_url=settings.qdrant_url,
+            embedding_model=settings.embedding_model_large,
+            cohere_api_key=settings.cohere_api_key,
+            rerank_model=settings.rerank_model,
+            qdrant_api_key=settings.qdrant_api_key,
+        ) as engine:
+            outcome = await engine.search(
+                session=session,
+                query=q,
+                retrieve_k=settings.search_retrieve_k,
+                return_k=limit,
+                categories=categories,
+                chunk_embedding_model=settings.embedding_model_small,
+            )
+
+        span.update(
+            output={
+                "hits": len(outcome.results),
+                "top_arxiv_ids": [r.arxiv_id for r in outcome.results[:5]],
+            },
+            metadata={
+                "candidates": outcome.total_found,
+                "reranked": outcome.reranked,
+                "latency_ms": outcome.latency_ms,
+            },
         )
 
     return SearchResponse(

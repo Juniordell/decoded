@@ -22,13 +22,49 @@ const mono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Decoded — AI research, explained for humans",
     template: "%s · Decoded",
   },
   description:
-    "Every new AI paper, translated into something you can actually read. TL;DRs, deep dives, figure explanations, and analogies.",
+    "Every new AI paper from arXiv, translated into something you can actually read. TL;DRs, deep dives, figure explanations, and analogies. No PhD required.",
+  keywords: [
+    "AI research",
+    "machine learning papers",
+    "arXiv",
+    "paper summaries",
+    "LLM research",
+    "AI explained",
+  ],
+  authors: [{ name: "Nelson Dell" }],
+  openGraph: {
+    type: "website",
+    siteName: "Decoded",
+    title: "Decoded — AI research, explained for humans",
+    description:
+      "Every new AI paper, translated into something you can actually read.",
+    url: SITE_URL,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Decoded — AI research, explained for humans",
+    description:
+      "Every new AI paper, translated into something you can actually read.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 export default function RootLayout({

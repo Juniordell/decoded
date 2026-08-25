@@ -7,6 +7,7 @@ import instructor
 import structlog
 from anthropic import AsyncAnthropic
 from anthropic.types.message import Message
+from decoded.observability.tracing import record_generation
 
 from decoded.decoding.prompts import (
     ANALOGY_GENERATE_SYSTEM,
@@ -107,6 +108,19 @@ def _empty_generation(model_obj, model_name: str, start: float) -> GenerationRes
 def compute_batch_cost(usage: dict, model: str) -> float:
     """Batch API costs 50% of standard rates."""
     return _compute_cost(usage, model) * 0.5
+
+def _paper_context_full(title: str, abstract: str, full_text: str) -> str:
+    """Format full-paper context sent to the LLM."""
+    return f"""Paper title: {title}
+
+Paper abstract:
+{abstract}
+
+---
+
+Full paper text (parsed from PDF):
+
+{full_text}"""
 
 class SectionGenerator:
     """Generates decoded sections. Uses Anthropic + Instructor + prompt caching."""
@@ -540,6 +554,21 @@ class SectionGenerator:
             cost_usd=round(cost, 6),
             latency_ms=latency_ms,
         )
+        record_generation(
+            name=f"decode.{response_model.__name__}",
+            model=model,
+            input={"system_prompt_chars": len(system_prompt), "user_content": user_content[:2000]},
+            output=result.model_dump(),
+            usage={
+                "input": usage.get("input_tokens", 0),
+                "output": usage.get("output_tokens", 0),
+                "cache_read_input_tokens": usage.get("cache_read_input_tokens", 0) or 0,
+                "cache_creation_input_tokens": usage.get("cache_creation_input_tokens", 0) or 0,
+            },
+            cost_usd=cost,
+            latency_ms=latency_ms,
+            metadata={"prompt_version": VERSION, "section": response_model.__name__},
+        )
 
         return GenerationResult(
             content=result.model_dump(),
@@ -552,17 +581,4 @@ class SectionGenerator:
             cost_usd=cost,
             latency_ms=latency_ms,
         )
-
-
-def _paper_context_full(title: str, abstract: str, full_text: str) -> str:
-    """Format full-paper context sent to the LLM."""
-    return f"""Paper title: {title}
-
-Paper abstract:
-{abstract}
-
----
-
-Full paper text (parsed from PDF):
-
-{full_text}"""
+    

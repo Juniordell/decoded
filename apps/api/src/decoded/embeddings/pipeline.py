@@ -33,6 +33,7 @@ async def embed_parsed_papers(
     embedding_model_small: str,
     embedding_model_large: str,
     limit: int = 10,
+    qdrant_api_key: str | None = None,
 ) -> dict:
     """
     Embed the next N papers with status=PARSED.
@@ -42,7 +43,7 @@ async def embed_parsed_papers(
     log = logger.bind(source="embedder")
     log.info("embed.start", limit=limit)
 
-    qdrant = AsyncQdrantClient(url=qdrant_url)
+    qdrant = AsyncQdrantClient(url=qdrant_url, api_key=qdrant_api_key)
     await ensure_collections(qdrant)
 
     async with async_session_factory() as session, EmbeddingsClient(openai_api_key) as embedder:

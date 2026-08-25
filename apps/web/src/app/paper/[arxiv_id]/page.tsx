@@ -17,6 +17,7 @@ import { ApiError, api } from "@/lib/api";
 import { decoded } from "@/lib/decoded-types";
 import { categoryShort, compactNumber, relativeTime } from "@/lib/format";
 import { SaveButton } from "@/components/save-button";
+import { PaperJsonLd } from "@/components/paper-json-ld";
 
 export const revalidate = 3600;
 
@@ -32,15 +33,22 @@ export async function generateMetadata({
     const decodedMap = paper.decoded ?? {};
     const one = decoded.oneSentence(decodedMap);
     const description = one?.text ?? paper.abstract.slice(0, 155);
+    const url = `/paper/${arxiv_id}`;
 
     return {
       title: paper.title,
       description,
+      alternates: {
+        canonical: url,
+      },
       openGraph: {
         title: paper.title,
         description,
         type: "article",
+        url,
         publishedTime: paper.published_at,
+        authors: (paper.authors ?? []).map((a) => a.name),
+        tags: paper.categories ?? [],
       },
       twitter: {
         card: "summary_large_image",
@@ -49,7 +57,10 @@ export async function generateMetadata({
       },
     };
   } catch {
-    return { title: "Paper not found" };
+    return {
+      title: "Paper not found",
+      robots: { index: false, follow: false },
+    };
   }
 }
 
@@ -91,6 +102,7 @@ export default async function PaperPage({
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
+      <PaperJsonLd paper={paper} oneSentence={one?.text ?? null} />
       <div className="grid gap-12 lg:grid-cols-[1fr_160px]">
         <article className="min-w-0 max-w-2xl">
           <header className="mb-10">

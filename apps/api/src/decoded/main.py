@@ -8,15 +8,18 @@ from decoded.config import settings
 from decoded.logging import configure_logging, logger
 from decoded.api.search import router as search_router
 from decoded.api.users import router as users_router
+from decoded.observability.tracing import flush as flush_tracing
+from decoded.observability.tracing import init_tracing
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     configure_logging(settings.log_level)
+    init_tracing()
     logger.info("startup", app=settings.app_name, version=settings.version)
     yield
+    flush_tracing()
     logger.info("shutdown")
-
 
 app = FastAPI(
     title="Decoded API",

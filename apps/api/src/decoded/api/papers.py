@@ -17,6 +17,7 @@ from decoded.api.schemas import (
 from decoded.db.base import get_session
 from decoded.db.models import DecodedContent, Paper
 from decoded.decoding.prompts import VERSION as PROMPT_VERSION
+from pydantic import BaseModel
 
 logger = structlog.get_logger()
 
@@ -155,3 +156,47 @@ async def get_paper(
         decoded=sections,
         decoded_at=decoded_at,
     )
+
+class SitemapEntry(BaseModel):
+    arxiv_id: str
+    updated_at: datetime
+    is_decoded: bool
+
+
+class SitemapResponse(BaseModel):
+    entries: list[SitemapEntry]
+    total: int
+
+
+@router.get("/sitemap/entries", response_model=SitemapResponse)
+async def sitemap_entries(
+    limit: int = Query(default=5000, ge=1, le=50000),
+    session: AsyncSession = Depends(get_session),
+) -> SitemapResponse:
+    """
+    Lista enxuta pro sitemap. Papers decodificados primeiro — são os que
+    têm conteúdo original e valem indexação prioritária.
+    """
+    decoded_ids_stmt = select(DecodedContent.paper_id).where(
+        DecodedContent.section == "one_sentence",
+        DecodedContent.prompt_version == PROMPT_VERSION,
+    )
+    decoded_ids = set((await session.execute(decoded_ids_stmt)).scalars().all())
+
+    stmt = (
+        select(Paper.id, Paper.arxiv_id, Paper.updated_at)
+        .order_by(Paper.priority_score.desc(), Paper.published_at.desc())
+        .limit(limit)
+    )
+    rows = (await session.execute(stmt)).all()
+
+    entries = [
+        SitemapEntry(
+            arxiv_id=row.arxiv_id,
+            updated_at=row.updated_at,
+            is_decoded=row.id in decoded_ids,
+        )
+        for row in rows
+    ]
+
+    return SitemapResponse(entries=entries, total=len(entries))

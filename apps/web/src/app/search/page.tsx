@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 export const metadata = {
   title: "Search",
   description: "Semantic search across decoded AI research papers.",
+  robots: { index: true, follow: true },
 };
 
 export default async function SearchPage({

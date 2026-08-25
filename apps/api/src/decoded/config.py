@@ -48,4 +48,11 @@ class Settings(BaseSettings):
     clerk_jwks_url: Optional[str] = None  # https://SEU-APP.clerk.accounts.dev/.well-known/jwks.json
     clerk_issuer: Optional[str] = None    # https://SEU-APP.clerk.accounts.dev
 
+    langfuse_public_key: Optional[str] = None
+    langfuse_secret_key: Optional[str] = None
+    langfuse_host: str = "https://cloud.langfuse.com"
+
+    qdrant_url: str = "http://localhost:6333"
+    qdrant_api_key: Optional[str] = None
+
 settings = Settings()

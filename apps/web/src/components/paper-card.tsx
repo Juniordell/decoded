@@ -3,14 +3,17 @@ import type { PaperCard as PaperCardType } from "@/lib/api";
 import { categoryShort, compactNumber, relativeTime } from "@/lib/format";
 
 export function PaperCard({ paper }: { paper: PaperCardType }) {
+  const categories = paper.categories ?? [];
+  const authors = paper.authors ?? [];
+  const decodedSections = paper.decoded_sections ?? [];
+
   return (
     <article className="group border-b border-border py-7 last:border-b-0">
       <Link href={`/paper/${paper.arxiv_id}`} className="block">
-        {/* Metadados de topo */}
         <div className="mb-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
           <span className="tnum">{relativeTime(paper.published_at)}</span>
 
-          {paper.categories.slice(0, 2).map((c) => (
+          {categories.slice(0, 2).map((c) => (
             <span key={c} className="text-muted-foreground/70">
               {categoryShort(c)}
             </span>
@@ -18,17 +21,15 @@ export function PaperCard({ paper }: { paper: PaperCardType }) {
 
           {paper.is_decoded && (
             <span className="text-accent">
-              decoded · {paper.decoded_sections.length}
+              decoded · {decodedSections.length}
             </span>
           )}
         </div>
 
-        {/* Título */}
         <h2 className="font-serif text-[22px] leading-[1.25] tracking-tight transition-colors group-hover:text-accent sm:text-2xl">
           {paper.title}
         </h2>
 
-        {/* One-sentence, ou fallback */}
         {paper.one_sentence ? (
           <p className="mt-2.5 text-[15px] leading-relaxed text-muted-foreground">
             {paper.one_sentence}
@@ -39,15 +40,14 @@ export function PaperCard({ paper }: { paper: PaperCardType }) {
           </p>
         )}
 
-        {/* Rodapé: autores + sinais */}
         <div className="mt-3.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground/80">
-          {paper.authors.length > 0 && (
+          {authors.length > 0 && (
             <span className="truncate">
-              {paper.authors[0]}
-              {paper.authors.length > 1 && (
+              {authors[0]}
+              {authors.length > 1 && (
                 <span className="text-muted-foreground/60">
                   {" "}
-                  +{paper.authors.length - 1}
+                  +{authors.length - 1}
                 </span>
               )}
             </span>
@@ -60,7 +60,7 @@ export function PaperCard({ paper }: { paper: PaperCardType }) {
           )}
 
           {paper.hn_mentions > 0 && (
-            <span className="tnum">HN ×{paper.hn_mentions}</span>
+            <span className="tnum">HN x{paper.hn_mentions}</span>
           )}
         </div>
       </Link>

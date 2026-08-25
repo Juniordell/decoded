@@ -58,9 +58,10 @@ class SearchEngine:
         embedding_model: str,
         cohere_api_key: str | None = None,
         rerank_model: str = "rerank-v3.5",
+        qdrant_api_key: str | None = None,
     ) -> None:
         self._openai = AsyncOpenAI(api_key=openai_api_key)
-        self._qdrant = AsyncQdrantClient(url=qdrant_url)
+        self._qdrant = AsyncQdrantClient(url=qdrant_url, api_key=qdrant_api_key)
         self._embedding_model = embedding_model
         self._reranker = (
             Reranker(api_key=cohere_api_key, model=rerank_model)
