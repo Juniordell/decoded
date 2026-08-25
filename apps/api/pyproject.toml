@@ -25,6 +25,7 @@ dependencies = [
     "instructor (>=1.15.4,<2.0.0)",
     "pymupdf (>=1.28.2,<2.0.0)",
     "cohere (>=7.0.9,<8.0.0)",
+    "pyjwt[crypto] (>=2.13.0,<3.0.0)",
 ]
 
 [tool.poetry]

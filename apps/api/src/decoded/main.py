@@ -7,6 +7,7 @@ from decoded.api.papers import router as papers_router
 from decoded.config import settings
 from decoded.logging import configure_logging, logger
 from decoded.api.search import router as search_router
+from decoded.api.users import router as users_router
 
 
 @asynccontextmanager
@@ -34,6 +35,7 @@ app.add_middleware(
 
 app.include_router(papers_router)
 app.include_router(search_router)
+app.include_router(users_router)
 
 @app.get("/v1/health")
 async def health() -> dict:

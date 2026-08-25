@@ -16,6 +16,7 @@ import { PaperNav, type NavItem } from "@/components/paper-nav";
 import { ApiError, api } from "@/lib/api";
 import { decoded } from "@/lib/decoded-types";
 import { categoryShort, compactNumber, relativeTime } from "@/lib/format";
+import { SaveButton } from "@/components/save-button";
 
 export const revalidate = 3600;
 
@@ -145,6 +146,7 @@ export default async function PaperPage({
               >
                 PDF
               </a>
+              <SaveButton arxivId={paper.arxiv_id} />
             </div>
           </header>
 

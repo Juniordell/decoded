@@ -44,4 +44,8 @@ class Settings(BaseSettings):
     search_retrieve_k: int = 40   # candidatos do Qdrant
     search_return_k: int = 10     # resultados finais
 
+    clerk_secret_key: Optional[str] = None
+    clerk_jwks_url: Optional[str] = None  # https://SEU-APP.clerk.accounts.dev/.well-known/jwks.json
+    clerk_issuer: Optional[str] = None    # https://SEU-APP.clerk.accounts.dev
+
 settings = Settings()

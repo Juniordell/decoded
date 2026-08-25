@@ -3,6 +3,8 @@ import { Instrument_Serif, Inter, JetBrains_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { ClerkProvider } from "@clerk/nextjs";
+import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 
 const serif = Instrument_Serif({
   variable: "--font-serif",
@@ -33,19 +35,21 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${serif.variable} ${sans.variable} ${mono.variable} font-sans antialiased`}
-      >
-        <Providers>
-          <div className="min-h-screen">
-            <SiteHeader />
-            {children}
-            <SiteFooter />
-          </div>
-        </Providers>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <body
+          className={`${serif.variable} ${sans.variable} ${mono.variable} font-sans antialiased`}
+        >
+          <Providers>
+            <div className="min-h-screen">
+              <SiteHeader />
+              {children}
+              <SiteFooter />
+            </div>
+          </Providers>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
 
@@ -64,9 +68,33 @@ function SiteHeader() {
           <Link href="/" className="transition-colors hover:text-foreground">
             Feed
           </Link>
-          <Link href="/search" className="transition-colors hover:text-foreground">
+          <Link
+            href="/search"
+            className="transition-colors hover:text-foreground"
+          >
             Search
           </Link>
+
+          <Show when="signed-in">
+            <Link
+              href="/library"
+              className="transition-colors hover:text-foreground"
+            >
+              Library
+            </Link>
+            <UserButton />
+          </Show>
+
+          <Show when="signed-out">
+            <SignInButton mode="modal">
+              <button
+                type="button"
+                className="uppercase tracking-[0.14em] text-accent transition-opacity hover:opacity-70"
+              >
+                Sign in
+              </button>
+            </SignInButton>
+          </Show>
         </nav>
       </div>
     </header>

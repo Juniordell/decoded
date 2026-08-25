@@ -228,3 +228,69 @@ class DecodedContent(Base):
         ),
         Index("ix_decoded_contents_section", "section"),
     )
+
+
+# ============================================================
+# Users
+# ============================================================
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    clerk_user_id: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+
+    email: Mapped[Optional[str]] = mapped_column(String(320), nullable=True, index=True)
+    display_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    avatar_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Plano e créditos
+    plan: Mapped[str] = mapped_column(String(20), default="free")  # free | pro
+    credits_remaining: Mapped[int] = mapped_column(Integer, default=3)
+    credits_reset_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    saved_papers: Mapped[list["SavedPaper"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+
+class SavedPaper(Base):
+    __tablename__ = "saved_papers"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    paper_id: Mapped[int] = mapped_column(
+        ForeignKey("papers.id", ondelete="CASCADE"), index=True
+    )
+
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    user: Mapped[User] = relationship(back_populates="saved_papers")
+    paper: Mapped["Paper"] = relationship()
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "paper_id", name="uq_saved_papers_user_paper"),
+    )
+
+
+class ReadEvent(Base):
+    """Registro de leitura — alimenta o digest personalizado na Semana 5."""
+
+    __tablename__ = "read_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    paper_id: Mapped[int] = mapped_column(
+        ForeignKey("papers.id", ondelete="CASCADE"), index=True
+    )
+    section: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+
+    __table_args__ = (
+        Index("ix_read_events_user_created", "user_id", "created_at"),
+    )
