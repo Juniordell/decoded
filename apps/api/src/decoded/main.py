@@ -10,7 +10,7 @@ from decoded.api.search import router as search_router
 from decoded.api.users import router as users_router
 from decoded.observability.tracing import flush as flush_tracing
 from decoded.observability.tracing import init_tracing
-
+from decoded.api.modes import router as modes_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -39,6 +39,7 @@ app.add_middleware(
 app.include_router(papers_router)
 app.include_router(search_router)
 app.include_router(users_router)
+app.include_router(modes_router)
 
 @app.get("/v1/health")
 async def health() -> dict:

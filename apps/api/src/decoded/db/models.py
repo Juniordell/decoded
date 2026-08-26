@@ -294,3 +294,82 @@ class ReadEvent(Base):
     __table_args__ = (
         Index("ix_read_events_user_created", "user_id", "created_at"),
     )
+
+# ============================================================
+# ExplanationMode — geração sob demanda, cache permanente
+# ============================================================
+class ModeStatus(str, Enum):
+    PENDING = "pending"
+    GENERATING = "generating"
+    READY = "ready"
+    FAILED = "failed"
+    NOT_APPLICABLE = "not_applicable"
+
+
+class ExplanationMode(Base):
+    __tablename__ = "explanation_modes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    paper_id: Mapped[int] = mapped_column(
+        ForeignKey("papers.id", ondelete="CASCADE"),
+        index=True,
+    )
+    mode: Mapped[str] = mapped_column(String(30), nullable=False)
+
+    status: Mapped[ModeStatus] = mapped_column(
+        SQLEnum(ModeStatus, name="mode_status"),
+        default=ModeStatus.PENDING,
+        index=True,
+    )
+    content: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    schema_version: Mapped[int] = mapped_column(Integer, default=1)
+    prompt_version: Mapped[str] = mapped_column(String(20), nullable=False)
+
+    model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    input_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    output_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
+    latency_ms: Mapped[int] = mapped_column(Integer, default=0)
+
+    requested_by_user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    request_count: Mapped[int] = mapped_column(Integer, default=1)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "paper_id",
+            "mode",
+            "schema_version",
+            "prompt_version",
+            name="uq_explanation_modes_paper_mode_versions",
+        ),
+        Index("ix_explanation_modes_status", "status"),
+    )
+
+
+class CreditLedger(Base):
+    """Registro de consumo de créditos. Append-only."""
+
+    __tablename__ = "credit_ledger"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+    )
+    delta: Mapped[int] = mapped_column(Integer, nullable=False)
+    reason: Mapped[str] = mapped_column(String(50), nullable=False)
+    paper_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("papers.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    mode: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    balance_after: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    __table_args__ = (
+        Index("ix_credit_ledger_user_created", "user_id", "created_at"),
+    )

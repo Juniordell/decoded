@@ -55,4 +55,7 @@ class Settings(BaseSettings):
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: Optional[str] = None
 
+    mode_prompt_version: str = "v1"
+    mode_generation_timeout_s: float = 180.0
+
 settings = Settings()
