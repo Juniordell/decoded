@@ -18,6 +18,7 @@ import { decoded } from "@/lib/decoded-types";
 import { categoryShort, compactNumber, relativeTime } from "@/lib/format";
 import { SaveButton } from "@/components/save-button";
 import { PaperJsonLd } from "@/components/paper-json-ld";
+import { ModeSwitcher } from "@/components/modes/mode-switcher";
 
 export const revalidate = 3600;
 
@@ -98,6 +99,7 @@ export default async function PaperPage({
     figures?.items.length && { id: "figures", label: "Figures" },
     analogies?.items.length && { id: "analogies", label: "Analogies" },
     terms.length && { id: "vocabulary", label: "Vocabulary" },
+    { id: "modes", label: "Modes" },
   ].filter(Boolean) as NavItem[];
 
   return (
@@ -210,6 +212,8 @@ export default async function PaperPage({
                 <VocabularyBlock data={vocab} />
               </Section>
             )}
+
+            <ModeSwitcher arxivId={paper.arxiv_id} />
 
             <OriginalAbstract abstract={paper.abstract} />
           </div>

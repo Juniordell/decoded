@@ -157,6 +157,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/papers/{arxiv_id}/modes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Modes
+         * @description Lista todos os modos com status. Conteúdo incluído apenas para os prontos.
+         *     Funciona sem autenticação — modos em cache são públicos.
+         */
+        get: operations["list_modes_v1_papers__arxiv_id__modes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/papers/{arxiv_id}/modes/{mode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Mode
+         * @description Busca um modo específico. Só retorna se estiver em cache.
+         */
+        get: operations["get_mode_v1_papers__arxiv_id__modes__mode__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/papers/{arxiv_id}/modes/{mode}/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate
+         * @description Gera um modo. Gasta um crédito, exceto se já estiver em cache.
+         *
+         *     Cache hit não cobra — quem já pagou pela geração beneficia todo mundo depois.
+         */
+        post: operations["generate_v1_papers__arxiv_id__modes__mode__generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/health": {
         parameters: {
             query?: never;
@@ -213,6 +276,25 @@ export interface components {
             /** Next Cursor */
             next_cursor?: string | null;
         };
+        /** GenerateModeResponse */
+        GenerateModeResponse: {
+            /** Mode */
+            mode: string;
+            /** Status */
+            status: string;
+            /** Cached */
+            cached: boolean;
+            /** Content */
+            content?: {
+                [key: string]: unknown;
+            } | null;
+            /** Error */
+            error?: string | null;
+            /** Credits Remaining */
+            credits_remaining?: number | null;
+            /** Cost Usd */
+            cost_usd?: number | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -234,6 +316,32 @@ export interface components {
             credits_reset_at: string | null;
             /** Saved Count */
             saved_count: number;
+        };
+        /** ModeInfo */
+        ModeInfo: {
+            /** Mode */
+            mode: string;
+            /** Status */
+            status: string;
+            /** Cached */
+            cached: boolean;
+            /** Content */
+            content?: {
+                [key: string]: unknown;
+            } | null;
+            /** Generated At */
+            generated_at?: string | null;
+        };
+        /** ModesListResponse */
+        ModesListResponse: {
+            /** Arxiv Id */
+            arxiv_id: string;
+            /** Modes */
+            modes: components["schemas"]["ModeInfo"][];
+            /** Credits Remaining */
+            credits_remaining?: number | null;
+            /** Plan */
+            plan?: string | null;
         };
         /**
          * PaperCard
@@ -672,6 +780,101 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_modes_v1_papers__arxiv_id__modes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                arxiv_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModesListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_mode_v1_papers__arxiv_id__modes__mode__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                arxiv_id: string;
+                mode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModeInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_v1_papers__arxiv_id__modes__mode__generate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                arxiv_id: string;
+                mode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerateModeResponse"];
+                };
             };
             /** @description Validation Error */
             422: {
