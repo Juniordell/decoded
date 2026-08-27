@@ -63,4 +63,7 @@ class Settings(BaseSettings):
 
     openai_analogy_model: str = "gpt-5.6-luna"
 
+    mlflow_tracking_uri: str = "sqlite:///mlflow.db"
+    mlflow_experiment_prefix: str = "decoded"
+
 settings = Settings()

@@ -24,3 +24,12 @@ web:
 
 types:
 	cd apps/web && npm run gen:types
+
+mlflow:
+	cd apps/api && poetry run mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
+
+eval:
+	cd apps/api && poetry run python evals/runner.py
+
+variance:
+	cd apps/api && poetry run python optimization/measure_variance.py --runs 5

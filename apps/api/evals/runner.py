@@ -17,6 +17,7 @@ from decoded.db.base import async_session_factory  # noqa: E402
 from decoded.db.models import Paper  # noqa: E402
 from decoded.db.repositories.decoded_contents import DecodedContentsRepository  # noqa: E402
 from decoded.logging import configure_logging  # noqa: E402
+from decoded.observability.experiments import experiment_run  # noqa: E402
 
 from metrics.deterministic import EVALUATORS  # noqa: E402
 from metrics.judge import Judge  # noqa: E402
@@ -126,6 +127,7 @@ async def evaluate_paper(
 async def run_evals(
     prompt_version: str = "v1",
     run_llm_metrics: bool = True,
+    run_name: str | None = None,
 ) -> dict:
     configure_logging("INFO")
     golden = load_golden()
@@ -168,7 +170,6 @@ async def run_evals(
     if judge:
         await judge.close()
 
-    # --- Agregação ---
     summary = aggregate(results)
 
     run = {
@@ -180,18 +181,73 @@ async def run_evals(
         "results": results,
     }
 
+    # --- Persistência local (mantida) ---
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     out_path = RESULTS_DIR / f"eval-{prompt_version}-{stamp}.json"
     with open(out_path, "w") as f:
         json.dump(run, f, indent=2)
 
-    # Também salva como "latest" pro gate comparar
     with open(RESULTS_DIR / f"latest-{prompt_version}.json", "w") as f:
         json.dump(run, f, indent=2)
 
+    # --- MLflow ---
+    _log_to_mlflow(run, summary, prompt_version, run_llm_metrics, run_name, out_path)
+
     logger.info("eval.done", output=str(out_path), **summary)
     return run
+
+
+def _log_to_mlflow(
+    run: dict,
+    summary: dict,
+    prompt_version: str,
+    llm_metrics: bool,
+    run_name: str | None,
+    results_path: Path,
+) -> None:
+    """Registra o resultado do eval como um run do MLflow."""
+    name = run_name or f"eval-{prompt_version}-{datetime.now(timezone.utc):%m%d-%H%M}"
+
+    with experiment_run(
+        experiment="evals",
+        run_name=name,
+        params={
+            "prompt_version": prompt_version,
+            "llm_metrics": llm_metrics,
+            "papers": run["papers_evaluated"],
+            "decoder_fast": settings.decoder_model_fast,
+            "decoder_deep": settings.decoder_model_deep,
+        },
+        tags={"kind": "section_eval"},
+    ) as mlrun:
+        # Métricas achatadas: secao.metrica
+        for section, metrics in summary.items():
+            for key, value in metrics.items():
+                if isinstance(value, (int, float)):
+                    mlrun.log_metric(f"{section}.{key}", float(value))
+
+        # Agregado geral — o número que você olha primeiro
+        pass_rates = [
+            m["pass_rate"]
+            for m in summary.values()
+            if isinstance(m.get("pass_rate"), (int, float))
+        ]
+        if pass_rates:
+            mlrun.log_metric("overall.pass_rate", sum(pass_rates) / len(pass_rates))
+
+        faithfulness = [
+            m["faithfulness"]
+            for m in summary.values()
+            if isinstance(m.get("faithfulness"), (int, float))
+        ]
+        if faithfulness:
+            mlrun.log_metric(
+                "overall.faithfulness", sum(faithfulness) / len(faithfulness)
+            )
+
+        mlrun.log_artifact_dict("summary", summary)
+        mlrun.log_artifact(results_path, subdir="raw")
 
 
 def aggregate(results: list[dict]) -> dict:
@@ -249,11 +305,13 @@ if __name__ == "__main__":
         action="store_true",
         help="Roda só métricas determinísticas (grátis)",
     )
+    parser.add_argument("--run-name", default=None, help="Nome do run no MLflow")
     args = parser.parse_args()
 
     asyncio.run(
         run_evals(
             prompt_version=args.prompt_version,
             run_llm_metrics=not args.no_llm,
+            run_name=args.run_name,
         )
     )

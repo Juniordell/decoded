@@ -61,6 +61,7 @@ def _get_judge():
             settings.dspy_judge_model,
             api_key=settings.openai_api_key,
             max_tokens=500,
+            cache=False,
         )
         _judge = dspy.Predict(JudgeAnalogy)
     return _judge
