@@ -244,3 +244,9 @@ apps/web/out/
 apps/web/node_modules/
 apps/web/.env.local
 node_modules/
+
+apps/api/optimization/compiled/*.json
+!apps/api/optimization/compiled/.gitkeep
+
+apps/api/mlruns/
+apps/api/mlflow.db
