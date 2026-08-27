@@ -145,3 +145,88 @@ class Judge:
             response_model=QualityVerdict,
             max_retries=2,
         )
+
+    async def code_fidelity(
+        self,
+        method_description: str,
+        code: str,
+    ) -> CodeFidelityVerdict:
+        user = f"PAPER METHOD:\n\n{method_description[:8000]}\n\n---\n\nCODE:\n\n{code}"
+        return await self._client.messages.create(
+            model=self._model,
+            max_tokens=800,
+            system=[{"type": "text", "text": CODE_FIDELITY_SYSTEM}],
+            messages=[{"role": "user", "content": user}],
+            response_model=CodeFidelityVerdict,
+            max_retries=2,
+        )
+
+    async def story_grounding(
+        self,
+        source_summary: str,
+        story_text: str,
+    ) -> StoryGroundingVerdict:
+        user = f"SOURCE:\n\n{source_summary[:10000]}\n\n---\n\nNARRATIVE:\n\n{story_text}"
+        return await self._client.messages.create(
+            model=self._model,
+            max_tokens=1000,
+            system=[{"type": "text", "text": STORY_GROUNDING_SYSTEM}],
+            messages=[{"role": "user", "content": user}],
+            response_model=StoryGroundingVerdict,
+            max_retries=2,
+        )
+
+# ============================================================
+# Judges dos modos
+# ============================================================
+class CodeFidelityVerdict(BaseModel):
+    implements_paper_method: bool = Field(
+        ...,
+        description="O código implementa o método que o paper descreve, ou algo diferente?",
+    )
+    score: int = Field(..., ge=1, le=5)
+    reasoning: str = Field(..., max_length=400)
+
+
+class StoryGroundingVerdict(BaseModel):
+    unsupported_claims: list[str] = Field(
+        default_factory=list,
+        description="Até 3 afirmações históricas que o paper não sustenta",
+        max_length=3,
+    )
+    score: int = Field(..., ge=1, le=5)
+    reasoning: str = Field(..., max_length=400)
+
+
+CODE_FIDELITY_SYSTEM = """You judge whether a code sample faithfully implements the method a paper describes.
+
+You receive the paper's method description and a short Python implementation.
+
+The code is deliberately simplified — that is expected and not a fault. Judge whether the ALGORITHM is right, not whether the implementation is complete.
+
+SCALE:
+5 — The core algorithm is correct. Someone reading this would understand the paper's method.
+4 — Correct algorithm, one meaningful detail simplified without being flagged in caveats.
+3 — Roughly right, but a step is missing or reordered in a way that changes behaviour.
+2 — Implements something adjacent to the paper's method, not the method itself.
+1 — Unrelated to what the paper describes, or generic boilerplate.
+
+Be strict about step 3. Code that looks plausible but reorders a critical step is worse than code that admits it skipped one."""
+
+
+STORY_GROUNDING_SYSTEM = """You judge whether a narrative history is grounded in the source material.
+
+You receive a paper's summary and a chronological narrative built from it.
+
+Your task: identify claims about the field's history that the source material does not support. Invented dates, invented predecessor work, invented motivations.
+
+Reasonable framing and interpretation are fine. Inventing a fact is not.
+
+SCALE:
+5 — Every historical claim traces to the source. Framing is interpretive but grounded.
+4 — One minor unsupported detail, not load-bearing.
+3 — Two or three unsupported claims, or a date presented with false confidence.
+2 — A significant invented fact — a paper, a lab, a result that isn't there.
+1 — The narrative is largely fabricated.
+
+List the specific unsupported claims. Naming them is more useful than the score."""

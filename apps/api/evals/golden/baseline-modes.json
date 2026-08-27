@@ -1,0 +1,218 @@
+{
+  "timestamp": "2026-08-27T22:58:20.226826+00:00",
+  "prompt_version": "v1",
+  "llm_metrics": true,
+  "papers_evaluated": 1,
+  "summary": {
+    "analogy": {
+      "papers": 1,
+      "skipped": 0,
+      "pass_rate": 0.8,
+      "checks": "4/5",
+      "top_failures": {
+        "mappings_not_circular": 1
+      }
+    },
+    "diagram": {
+      "papers": 1,
+      "skipped": 0,
+      "pass_rate": 1.0,
+      "checks": "5/5"
+    },
+    "code": {
+      "papers": 1,
+      "skipped": 0,
+      "pass_rate": 0.714,
+      "checks": "5/7",
+      "judge_mean": 5.0,
+      "top_failures": {
+        "no_heavy_deps": 1,
+        "code_length": 1
+      }
+    },
+    "math": {
+      "papers": 1,
+      "skipped": 0,
+      "pass_rate": 1.0,
+      "checks": "5/5"
+    }
+  },
+  "results": [
+    {
+      "arxiv_id": "2608.06221",
+      "title": "Robot Learning from Human Demonstrations: Handwritten Alphabet Trajectories and ",
+      "modes": {
+        "analogy": {
+          "status": "ready",
+          "model": "claude-haiku-4-5-20251001",
+          "cost_usd": 0.046995,
+          "deterministic": [
+            {
+              "name": "analogy_count",
+              "value": 4.0,
+              "passed": true,
+              "detail": "4 analogias (alvo 2-4)"
+            },
+            {
+              "name": "domains_distinct",
+              "value": 4.0,
+              "passed": true,
+              "detail": "4 dom\u00ednios para 4 analogias"
+            },
+            {
+              "name": "setups_jargon_free",
+              "value": 0.0,
+              "passed": true,
+              "detail": "ok"
+            },
+            {
+              "name": "mappings_not_circular",
+              "value": 3.0,
+              "passed": false,
+              "detail": "Segmentation of multi-stroke characters into independent trained segments: distinct shots (wide, close-up) \u2192 distinct stroke ; Using a continuous 0\u2013100 perceptual scale to establish a human-likeness benchmark for robot motion: 1\u201310 scale with anchored endpoints \u2192 0\u2013100 continu"
+            },
+            {
+              "name": "breaks_substantive",
+              "value": 0.0,
+              "passed": true,
+              "detail": "ok"
+            }
+          ],
+          "llm": {}
+        },
+        "diagram": {
+          "status": "ready",
+          "model": "claude-sonnet-4-6",
+          "cost_usd": 0.04991639999999999,
+          "deterministic": [
+            {
+              "name": "mermaid_valid",
+              "value": 0.0,
+              "passed": true,
+              "detail": "ok"
+            },
+            {
+              "name": "node_count",
+              "value": 12.0,
+              "passed": true,
+              "detail": "12 n\u00f3s (alvo 5-16)"
+            },
+            {
+              "name": "walkthrough_covers",
+              "value": 10.0,
+              "passed": true,
+              "detail": "10 passos para 12 n\u00f3s"
+            },
+            {
+              "name": "walkthrough_substantive",
+              "value": 0.0,
+              "passed": true,
+              "detail": "ok"
+            },
+            {
+              "name": "caption_present",
+              "value": 38.0,
+              "passed": true,
+              "detail": "38 palavras"
+            }
+          ],
+          "llm": {}
+        },
+        "code": {
+          "status": "ready",
+          "model": "claude-sonnet-4-6",
+          "cost_usd": 0.07960350000000001,
+          "deterministic": [
+            {
+              "name": "code_parses",
+              "value": 1.0,
+              "passed": true,
+              "detail": "ok"
+            },
+            {
+              "name": "no_heavy_deps",
+              "value": 1.0,
+              "passed": false,
+              "detail": "imports proibidos: ['sklearn']"
+            },
+            {
+              "name": "has_function",
+              "value": 6.0,
+              "passed": true,
+              "detail": "6 fun\u00e7\u00f5es"
+            },
+            {
+              "name": "code_length",
+              "value": 103.0,
+              "passed": false,
+              "detail": "103 linhas \u00fateis (alvo 12-90)"
+            },
+            {
+              "name": "comment_density",
+              "value": 0.146,
+              "passed": true,
+              "detail": "15 coment\u00e1rios para 103 linhas"
+            },
+            {
+              "name": "caveats_specific",
+              "value": 0.0,
+              "passed": true,
+              "detail": "5 caveats"
+            },
+            {
+              "name": "description_present",
+              "value": 64.0,
+              "passed": true,
+              "detail": "64 palavras"
+            }
+          ],
+          "llm": {
+            "code_fidelity": {
+              "implements_paper_method": true,
+              "score": 5,
+              "reasoning": "Code implements all core steps correctly: pen-lift detection via distance thresholding, independent segment fitting with K=20 GMM, 5-D state encoding [t,x,y,force,t_norm], demonstration pooling, and standard GMR prediction. Steps are in correct order. Minor note: normalizes time per-segment rather than by average duration, but this is flagged in code comment and doesn't change algorithm validity."
+            }
+          }
+        },
+        "math": {
+          "status": "ready",
+          "model": "claude-sonnet-4-6",
+          "cost_usd": 0.0675165,
+          "deterministic": [
+            {
+              "name": "intuition_present",
+              "value": 104.0,
+              "passed": true,
+              "detail": "104 palavras (alvo 30-200)"
+            },
+            {
+              "name": "latex_balanced",
+              "value": 0.0,
+              "passed": true,
+              "detail": "ok"
+            },
+            {
+              "name": "katex_compatible",
+              "value": 0.0,
+              "passed": true,
+              "detail": "ok"
+            },
+            {
+              "name": "plain_readings_present",
+              "value": 0.0,
+              "passed": true,
+              "detail": "ok"
+            },
+            {
+              "name": "symbol_coverage",
+              "value": 0.0,
+              "passed": true,
+              "detail": "ok"
+            }
+          ],
+          "llm": {}
+        }
+      }
+    }
+  ]
+}

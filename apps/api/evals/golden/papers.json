@@ -26,6 +26,21 @@
       "arxiv_id": "2608.06227",
       "type": "TODO: empirical | theory | survey | benchmark | position",
       "notes": "[cs.NI] From Passive Mirrors to Active Agents: Holonic Digital Twins for Physi"
+    },
+    {
+      "arxiv_id": "2608.06337",
+      "type": "TODO: empirical | theory | survey | benchmark | position",
+      "notes": "[stat.ML] Optimal Rates for Learning with Monotone Adversaries"
+    },
+    {
+      "arxiv_id": "2608.06310",
+      "type": "TODO: empirical | theory | survey | benchmark | position",
+      "notes": "[cs.LG] RRC: Unlocking Generative Reward Models in LLM Reinforcement Learning "
+    },
+    {
+      "arxiv_id": "2608.06300",
+      "type": "TODO: empirical | theory | survey | benchmark | position",
+      "notes": "[cs.AI] Bias Analysis of L2 Speaking Assessment Systems Using Concept Activati"
     }
   ]
 }

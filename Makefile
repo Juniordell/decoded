@@ -33,3 +33,15 @@ eval:
 
 variance:
 	cd apps/api && poetry run python optimization/measure_variance.py --runs 5
+
+eval-sections:
+	cd apps/api && poetry run python evals/runner.py
+
+eval-modes:
+	cd apps/api && poetry run python evals/modes_runner.py
+
+eval-all: eval-sections eval-modes
+	cd apps/api && poetry run python evals/gate.py
+
+gate:
+	cd apps/api && poetry run python evals/gate.py

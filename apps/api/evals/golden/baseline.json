@@ -1,13 +1,13 @@
 {
-  "timestamp": "2026-08-19T21:44:08.897086+00:00",
+  "timestamp": "2026-08-27T21:21:51.035863+00:00",
   "prompt_version": "v1",
   "llm_metrics_enabled": false,
   "papers_evaluated": 1,
   "summary": {
     "one_sentence": {
       "papers": 1,
-      "pass_rate": 0.667,
-      "checks": "2/3"
+      "pass_rate": 1.0,
+      "checks": "3/3"
     },
     "sixty_second": {
       "papers": 1,
@@ -43,13 +43,13 @@
         "one_sentence": {
           "model": "claude-haiku-4-5-20251001",
           "prompt_version": "v1",
-          "cost_usd": 0.0013700000000000001,
+          "cost_usd": 0.0013455,
           "deterministic": [
             {
               "name": "word_count",
-              "value": 23.0,
-              "passed": false,
-              "detail": "23 palavras (limite 20)"
+              "value": 18.0,
+              "passed": true,
+              "detail": "18 palavras (limite 20)"
             },
             {
               "name": "jargon_free",
