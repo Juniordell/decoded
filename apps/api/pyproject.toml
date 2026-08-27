@@ -27,6 +27,8 @@ dependencies = [
     "cohere (>=7.0.9,<8.0.0)",
     "pyjwt[crypto] (>=2.13.0,<3.0.0)",
     "langfuse (>=4.14.5,<5.0.0)",
+    "dspy-ai (>=3.3.1,<4.0.0)",
+    "dspy[optuna] (>=3.3.1,<4.0.0)",
 ]
 
 [tool.poetry]
@@ -40,7 +42,8 @@ ruff = "^0.7.0"
 ragas = "^0.4.3"
 datasets = "^5.0.1"
 textstat = "^0.7.13"
-pandas = "^3.0.5"
+pandas = ">=2.2,<3"
+mlflow = "^3.15.2"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

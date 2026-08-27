@@ -14,6 +14,7 @@ from decoded.modes.generator import ModeGenerator
 from decoded.modes.prompts import MODE_PROMPT_VERSION
 from decoded.modes.schemas import ALL_MODES
 from decoded.observability.tracing import trace_span
+from decoded.config import settings
 
 logger = structlog.get_logger()
 
@@ -124,6 +125,8 @@ async def generate_mode(
                     api_key=anthropic_api_key,
                     fast_model=fast_model,
                     deep_model=deep_model,
+                    openai_api_key=settings.openai_api_key,
+                    openai_model=settings.openai_analogy_model,
                 ) as gen:
                     result = await gen.generate(
                         mode=mode,

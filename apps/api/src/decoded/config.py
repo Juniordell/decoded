@@ -58,4 +58,9 @@ class Settings(BaseSettings):
     mode_prompt_version: str = "v1"
     mode_generation_timeout_s: float = 180.0
 
+    dspy_generator_model: str = "openai/gpt-5.6-luna"
+    dspy_judge_model: str = "openai/gpt-5.6-terra"
+
+    openai_analogy_model: str = "gpt-5.6-luna"
+
 settings = Settings()
