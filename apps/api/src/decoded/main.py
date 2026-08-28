@@ -11,13 +11,16 @@ from decoded.api.users import router as users_router
 from decoded.observability.tracing import flush as flush_tracing
 from decoded.observability.tracing import init_tracing
 from decoded.api.modes import router as modes_router
+from decoded.cache.client import close_redis, get_redis
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     configure_logging(settings.log_level)
     init_tracing()
+    await get_redis()  # conecta cedo, loga se falhar
     logger.info("startup", app=settings.app_name, version=settings.version)
     yield
+    await close_redis()
     flush_tracing()
     logger.info("shutdown")
 

@@ -1,29 +1,40 @@
+"""Endpoints de papers: feed, detalhe e sitemap."""
+
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from decoded.api.deps import rate_limited
 from decoded.api.schemas import (
     AuthorOut,
     FeedResponse,
     PaperCard,
     PaperDetail,
 )
+from decoded.cache.client import cache_get, cache_set
 from decoded.db.base import get_session
 from decoded.db.models import DecodedContent, Paper
 from decoded.decoding.prompts import VERSION as PROMPT_VERSION
-from pydantic import BaseModel
 
 logger = structlog.get_logger()
 
 router = APIRouter(prefix="/v1/papers", tags=["papers"])
 
+FEED_CACHE_TTL = 300      # 5 minutos, alinhado com o ISR do frontend
+PAPER_CACHE_TTL = 3600    # 1 hora, conteúdo decodificado é estável
 
+
+# ============================================================
+# Helpers
+# ============================================================
 async def _decoded_map_for(
     session: AsyncSession, paper_ids: list[int]
 ) -> dict[int, dict[str, dict]]:
@@ -43,6 +54,17 @@ async def _decoded_map_for(
     return out
 
 
+def _feed_cache_key(
+    limit: int, offset: int, category: str | None, decoded_only: bool
+) -> str:
+    raw = f"{limit}:{offset}:{category or ''}:{decoded_only}"
+    digest = hashlib.sha256(raw.encode()).hexdigest()[:16]
+    return f"feed:{digest}"
+
+
+# ============================================================
+# Feed
+# ============================================================
 @router.get("", response_model=FeedResponse)
 async def list_papers(
     limit: int = Query(default=20, ge=1, le=50),
@@ -50,8 +72,16 @@ async def list_papers(
     category: str | None = Query(default=None, description="Filtra por categoria arXiv"),
     decoded_only: bool = Query(default=False, description="Só papers já decodificados"),
     session: AsyncSession = Depends(get_session),
+    _rl: None = Depends(rate_limited("default")),
 ) -> FeedResponse:
-    """Feed principal, ordenado por priority_score."""
+    """Feed principal, ordenado por priority_score. Cacheado por 5 minutos."""
+    cache_key = _feed_cache_key(limit, offset, category, decoded_only)
+
+    cached = await cache_get(cache_key)
+    if cached is not None:
+        logger.info("feed.cache_hit", key=cache_key)
+        return FeedResponse.model_validate(cached)
+
     stmt = select(Paper).options(selectinload(Paper.authors))
 
     if category:
@@ -101,20 +131,34 @@ async def list_papers(
             )
         )
 
-    return FeedResponse(
+    response = FeedResponse(
         papers=cards,
         total=total,
         has_more=has_more,
         next_cursor=str(offset + limit) if has_more else None,
     )
 
+    await cache_set(cache_key, response.model_dump(mode="json"), FEED_CACHE_TTL)
+    return response
 
+
+# ============================================================
+# Detalhe
+# ============================================================
 @router.get("/{arxiv_id}", response_model=PaperDetail)
 async def get_paper(
     arxiv_id: str,
     session: AsyncSession = Depends(get_session),
+    _rl: None = Depends(rate_limited("default")),
 ) -> PaperDetail:
     """Detalhe completo de um paper, com todo o conteúdo decodificado."""
+    cache_key = f"paper:{arxiv_id}:{PROMPT_VERSION}"
+
+    cached = await cache_get(cache_key)
+    if cached is not None:
+        logger.info("paper.cache_hit", arxiv_id=arxiv_id)
+        return PaperDetail.model_validate(cached)
+
     stmt = (
         select(Paper)
         .options(selectinload(Paper.authors))
@@ -139,7 +183,7 @@ async def get_paper(
 
     hn_url = ((paper.extra or {}).get("hn") or {}).get("top_story_url")
 
-    return PaperDetail(
+    response = PaperDetail(
         arxiv_id=paper.arxiv_id,
         title=paper.title,
         abstract=paper.abstract,
@@ -157,6 +201,16 @@ async def get_paper(
         decoded_at=decoded_at,
     )
 
+    # Só cacheia papers decodificados — os pendentes mudam quando decodificam
+    if sections:
+        await cache_set(cache_key, response.model_dump(mode="json"), PAPER_CACHE_TTL)
+
+    return response
+
+
+# ============================================================
+# Sitemap
+# ============================================================
 class SitemapEntry(BaseModel):
     arxiv_id: str
     updated_at: datetime
@@ -174,9 +228,15 @@ async def sitemap_entries(
     session: AsyncSession = Depends(get_session),
 ) -> SitemapResponse:
     """
-    Lista enxuta pro sitemap. Papers decodificados primeiro — são os que
-    têm conteúdo original e valem indexação prioritária.
+    Lista enxuta pro sitemap. Papers decodificados marcados, porque
+    recebem prioridade maior no XML gerado pelo frontend.
     """
+    cache_key = f"sitemap:{limit}:{PROMPT_VERSION}"
+
+    cached = await cache_get(cache_key)
+    if cached is not None:
+        return SitemapResponse.model_validate(cached)
+
     decoded_ids_stmt = select(DecodedContent.paper_id).where(
         DecodedContent.section == "one_sentence",
         DecodedContent.prompt_version == PROMPT_VERSION,
@@ -199,4 +259,6 @@ async def sitemap_entries(
         for row in rows
     ]
 
-    return SitemapResponse(entries=entries, total=len(entries))
+    response = SitemapResponse(entries=entries, total=len(entries))
+    await cache_set(cache_key, response.model_dump(mode="json"), FEED_CACHE_TTL)
+    return response

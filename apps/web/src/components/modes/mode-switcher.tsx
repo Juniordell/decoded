@@ -20,6 +20,7 @@ import {
 import { DiagramModeView } from "./diagram-mode";
 import { MathModeView } from "./math-mode";
 import { AnalogyModeView, CodeModeView, StoryModeView } from "./other-modes";
+import { useEffect, useState } from "react";
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "/api").replace(
   /\/+$/,
@@ -55,12 +56,52 @@ export function ModeSwitcher({ arxivId }: { arxivId: string }) {
         status: string;
         content: unknown;
         credits_remaining: number;
+        poll_after_ms: number | null;
       }>(`/v1/papers/${arxivId}/modes/${mode}/generate`, { method: "POST" }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["modes", arxivId] });
+    onSuccess: (result) => {
       void queryClient.invalidateQueries({ queryKey: ["me"] });
+
+      if (result.status === "ready") {
+        void queryClient.invalidateQueries({ queryKey: ["modes", arxivId] });
+        return;
+      }
+
+      // Gerando — entra em polling
+      if (result.status === "generating") {
+        setPolling(result.mode as ModeName);
+      }
     },
   });
+
+  const [polling, setPolling] = useState<ModeName | null>(null);
+
+  const { data: polled } = useQuery({
+    queryKey: ["mode-poll", arxivId, polling],
+    queryFn: async (): Promise<ModeInfo> => {
+      const res = await fetch(
+        `${API_BASE}/v1/papers/${arxivId}/modes/${polling}`,
+      );
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json();
+    },
+    enabled: polling !== null,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "generating" || status === "pending" ? 3000 : false;
+    },
+  });
+
+  useEffect(() => {
+    if (!polled) return;
+    if (
+      polled.status === "ready" ||
+      polled.status === "failed" ||
+      polled.status === "not_applicable"
+    ) {
+      setPolling(null);
+      void queryClient.invalidateQueries({ queryKey: ["modes", arxivId] });
+    }
+  }, [polled, arxivId, queryClient]);
 
   function selectMode(mode: ModeName | null) {
     const next = new URLSearchParams(params.toString());
@@ -131,7 +172,7 @@ export function ModeSwitcher({ arxivId }: { arxivId: string }) {
             mode={activeMode}
             info={active ?? null}
             isSignedIn={!!isSignedIn}
-            isGenerating={generate.isPending}
+            isGenerating={generate.isPending || polling === activeMode}
             error={generate.error}
             onGenerate={() => generate.mutate(activeMode)}
           />

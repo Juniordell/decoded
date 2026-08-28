@@ -1,18 +1,32 @@
 from __future__ import annotations
 
+import hashlib
+
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from decoded.api.deps import rate_limited
 from decoded.api.schemas import SearchHit, SearchResponse
+from decoded.cache.client import cache_get, cache_set
 from decoded.config import settings
 from decoded.db.base import get_session
-from decoded.search.engine import SearchEngine
 from decoded.observability.tracing import trace_span
+from decoded.search.engine import SearchEngine
 
 logger = structlog.get_logger()
 
 router = APIRouter(prefix="/v1/search", tags=["search"])
+
+SEARCH_CACHE_TTL = 900  # 15 minutos
+
+
+def _cache_key(query: str, limit: int, category: str | None) -> str:
+    """Normaliza a query antes de hashear — 'RLHF' e 'rlhf ' são a mesma busca."""
+    normalized = " ".join(query.strip().lower().split())
+    raw = f"{normalized}:{limit}:{category or ''}"
+    digest = hashlib.sha256(raw.encode()).hexdigest()[:16]
+    return f"search:{digest}"
 
 
 @router.get("", response_model=SearchResponse)
@@ -21,9 +35,25 @@ async def search(
     limit: int = Query(default=10, ge=1, le=25),
     category: str | None = Query(default=None),
     session: AsyncSession = Depends(get_session),
+    _rl: None = Depends(rate_limited("search")),
 ) -> SearchResponse:
+    """
+    Busca semântica sobre papers decodificados.
+
+    Cacheada por 15 minutos. Um hit economiza dois embeddings da query
+    (as duas coleções usam modelos diferentes) mais uma chamada ao reranker.
+    """
     if not settings.openai_api_key:
-        raise HTTPException(status_code=503, detail="Busca indisponível: OPENAI_API_KEY ausente")
+        raise HTTPException(
+            status_code=503,
+            detail="Busca indisponível: OPENAI_API_KEY ausente",
+        )
+
+    cache_key = _cache_key(q, limit, category)
+    cached = await cache_get(cache_key)
+    if cached is not None:
+        logger.info("search.cache_hit", query=q[:60])
+        return SearchResponse.model_validate(cached)
 
     categories = [category] if category else None
 
@@ -61,7 +91,7 @@ async def search(
             },
         )
 
-    return SearchResponse(
+    response = SearchResponse(
         query=q,
         hits=[
             SearchHit(
@@ -79,3 +109,10 @@ async def search(
         reranked=outcome.reranked,
         latency_ms=outcome.latency_ms,
     )
+
+    # Só cacheia resultado útil. Busca vazia costuma ser typo — cachear
+    # significaria servir o erro por 15 minutos depois de corrigido.
+    if response.hits:
+        await cache_set(cache_key, response.model_dump(mode="json"), SEARCH_CACHE_TTL)
+
+    return response
