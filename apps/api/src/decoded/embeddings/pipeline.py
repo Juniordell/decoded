@@ -54,7 +54,7 @@ async def embed_parsed_papers(
         stmt = (
             select(Paper)
             .options(selectinload(Paper.parsed_content))
-            .where(Paper.status == IngestionStatus.PARSED)
+            .where(Paper.status.in_([IngestionStatus.ENRICHED, IngestionStatus.PARSED]))
             .order_by(Paper.priority_score.desc(), Paper.published_at.desc())
             .limit(limit)
         )

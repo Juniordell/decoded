@@ -15,7 +15,7 @@ async def main() -> int:
     logger.info("cli.start", command="enrich")
     try:
         result = await enrich_pending_papers(
-            limit=50,
+            limit=200,
             openalex_email=settings.openalex_email,
             s2_api_key=settings.semantic_scholar_api_key,
         )

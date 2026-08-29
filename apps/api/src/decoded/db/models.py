@@ -5,6 +5,7 @@ from typing import Optional
 from sqlalchemy import (
     ARRAY,
     JSON,
+    Boolean,
     Column,
     DateTime,
     Enum as SQLEnum,
@@ -147,7 +148,18 @@ class Topic(Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-    papers: Mapped[list[Paper]] = relationship(
+    # Rastreamento do clustering
+    cluster_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    keywords: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    paper_count: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Snapshot mais recente do run de clustering
+    last_clustered_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+
+    papers: Mapped[list["Paper"]] = relationship(
         secondary=paper_topics,
         back_populates="topics",
     )
@@ -373,3 +385,54 @@ class CreditLedger(Base):
     __table_args__ = (
         Index("ix_credit_ledger_user_created", "user_id", "created_at"),
     )
+
+class TopicSnapshot(Base):
+    """
+    Tamanho de um tópico numa janela de tempo.
+
+    Uma linha por (tópico, semana). É isso que transforma "esse tópico
+    existe" em "esse tópico cresceu 40% em três semanas".
+    """
+
+    __tablename__ = "topic_snapshots"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    topic_id: Mapped[int] = mapped_column(
+        ForeignKey("topics.id", ondelete="CASCADE"), index=True
+    )
+
+    window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    window_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    paper_count: Mapped[int] = mapped_column(Integer, default=0)
+    total_citations: Mapped[int] = mapped_column(Integer, default=0)
+    mean_priority: Mapped[float] = mapped_column(Float, default=0.0)
+    hn_mentions: Mapped[int] = mapped_column(Integer, default=0)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "topic_id", "window_start", name="uq_topic_snapshots_topic_window"
+        ),
+        Index("ix_topic_snapshots_window", "window_start"),
+    )
+
+class ClusteringRun(Base):
+    """Auditoria de cada execução do clustering."""
+
+    __tablename__ = "clustering_runs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    papers_clustered: Mapped[int] = mapped_column(Integer, default=0)
+    topics_found: Mapped[int] = mapped_column(Integer, default=0)
+    outliers: Mapped[int] = mapped_column(Integer, default=0)
+
+    min_cluster_size: Mapped[int] = mapped_column(Integer, default=5)
+    naming_cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
+
+    log: Mapped[dict] = mapped_column(JSON, default=dict)
