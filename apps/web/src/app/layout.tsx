@@ -105,6 +105,12 @@ function SiteHeader() {
             Feed
           </Link>
           <Link
+            href="/pulse"
+            className="transition-colors hover:text-foreground"
+          >
+            Pulse
+          </Link>
+          <Link
             href="/search"
             className="transition-colors hover:text-foreground"
           >

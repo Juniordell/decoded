@@ -81,3 +81,74 @@ class SearchResponse(BaseModel):
     total_found: int
     reranked: bool
     latency_ms: int
+
+class TopicCard(BaseModel):
+    """Versão de listagem."""
+
+    slug: str
+    name: str
+    description: str | None = None
+    keywords: list[str] = Field(default_factory=list)
+    paper_count: int
+    recent_papers: int = Field(
+        default=0, description="Papers nas últimas 4 semanas"
+    )
+    momentum: float = Field(
+        default=0.0, description="Variação relativa vs. as 4 semanas anteriores"
+    )
+    momentum_label: str = Field(default="steady")
+
+
+class TopicPoint(BaseModel):
+    """Um ponto na série temporal."""
+
+    week: datetime
+    papers: int
+    citations: int
+    mean_priority: float
+    hn_mentions: int
+
+
+class TopicAuthor(BaseModel):
+    name: str
+    affiliation: str | None = None
+    paper_count: int
+    total_citations: int
+
+
+class TopicDetail(BaseModel):
+    slug: str
+    name: str
+    description: str | None = None
+    keywords: list[str] = Field(default_factory=list)
+    paper_count: int
+
+    recent_papers: int
+    prior_papers: int
+    momentum: float
+    momentum_label: str
+
+    timeline: list[TopicPoint] = Field(default_factory=list)
+    top_authors: list[TopicAuthor] = Field(default_factory=list)
+    papers: list[PaperCard] = Field(default_factory=list)
+
+    last_clustered_at: datetime | None = None
+
+
+class TopicsListResponse(BaseModel):
+    topics: list[TopicCard]
+    total: int
+    clustered_at: datetime | None = None
+
+
+class PulseResponse(BaseModel):
+    """Visão geral do campo — a home do Field Pulse."""
+
+    rising: list[TopicCard] = Field(default_factory=list)
+    cooling: list[TopicCard] = Field(default_factory=list)
+    emerging: list[TopicCard] = Field(default_factory=list)
+    largest: list[TopicCard] = Field(default_factory=list)
+    total_topics: int
+    total_papers: int
+    weeks_covered: int
+    clustered_at: datetime | None = None

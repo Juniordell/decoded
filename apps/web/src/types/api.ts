@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * List Papers
-         * @description Feed principal, ordenado por priority_score.
+         * @description Feed principal, ordenado por priority_score. Cacheado por 5 minutos.
          */
         get: operations["list_papers_v1_papers_get"];
         put?: never;
@@ -53,8 +53,8 @@ export interface paths {
         };
         /**
          * Sitemap Entries
-         * @description Lista enxuta pro sitemap. Papers decodificados primeiro — são os que
-         *     têm conteúdo original e valem indexação prioritária.
+         * @description Lista enxuta pro sitemap. Papers decodificados marcados, porque
+         *     recebem prioridade maior no XML gerado pelo frontend.
          */
         get: operations["sitemap_entries_v1_papers_sitemap_entries_get"];
         put?: never;
@@ -72,7 +72,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Search */
+        /**
+         * Search
+         * @description Busca semântica sobre papers decodificados.
+         *
+         *     Cacheada por 15 minutos. Um hit economiza dois embeddings da query
+         *     (as duas coleções usam modelos diferentes) mais uma chamada ao reranker.
+         */
         get: operations["search_v1_search_get"];
         put?: never;
         post?: never;
@@ -209,11 +215,75 @@ export interface paths {
         put?: never;
         /**
          * Generate
-         * @description Gera um modo. Gasta um crédito, exceto se já estiver em cache.
+         * @description Dispara a geração de um modo. Retorna imediatamente.
          *
-         *     Cache hit não cobra — quem já pagou pela geração beneficia todo mundo depois.
+         *     Cache hit devolve o conteúdo na hora, de graça.
+         *     Caso contrário gasta o crédito, agenda a geração, e devolve
+         *     status=generating. O cliente faz polling no GET.
          */
         post: operations["generate_v1_papers__arxiv_id__modes__mode__generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Topics
+         * @description Todos os tópicos ativos.
+         */
+        get: operations["list_topics_v1_topics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/topics/pulse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Field Pulse
+         * @description Visão geral: o que está subindo, esfriando, emergindo, e o que é maior.
+         *
+         *     Esta é a home do Field Pulse.
+         */
+        get: operations["field_pulse_v1_topics_pulse_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/topics/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Topic
+         * @description Detalhe de um tópico: série temporal, autores, papers.
+         */
+        get: operations["get_topic_v1_topics__slug__get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -294,6 +364,11 @@ export interface components {
             credits_remaining?: number | null;
             /** Cost Usd */
             cost_usd?: number | null;
+            /**
+             * Poll After Ms
+             * @description Se status=generating, esperar isto antes do próximo GET
+             */
+            poll_after_ms?: number | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -419,6 +494,28 @@ export interface components {
             /** Decoded At */
             decoded_at?: string | null;
         };
+        /**
+         * PulseResponse
+         * @description Visão geral do campo — a home do Field Pulse.
+         */
+        PulseResponse: {
+            /** Rising */
+            rising?: components["schemas"]["TopicCard"][];
+            /** Cooling */
+            cooling?: components["schemas"]["TopicCard"][];
+            /** Emerging */
+            emerging?: components["schemas"]["TopicCard"][];
+            /** Largest */
+            largest?: components["schemas"]["TopicCard"][];
+            /** Total Topics */
+            total_topics: number;
+            /** Total Papers */
+            total_papers: number;
+            /** Weeks Covered */
+            weeks_covered: number;
+            /** Clustered At */
+            clustered_at?: string | null;
+        };
         /** ReadRequest */
         ReadRequest: {
             /** Arxiv Id */
@@ -502,6 +599,107 @@ export interface components {
             arxiv_id: string;
             /** Saved */
             saved: boolean;
+        };
+        /** TopicAuthor */
+        TopicAuthor: {
+            /** Name */
+            name: string;
+            /** Affiliation */
+            affiliation?: string | null;
+            /** Paper Count */
+            paper_count: number;
+            /** Total Citations */
+            total_citations: number;
+        };
+        /**
+         * TopicCard
+         * @description Versão de listagem.
+         */
+        TopicCard: {
+            /** Slug */
+            slug: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Keywords */
+            keywords?: string[];
+            /** Paper Count */
+            paper_count: number;
+            /**
+             * Recent Papers
+             * @description Papers nas últimas 4 semanas
+             * @default 0
+             */
+            recent_papers: number;
+            /**
+             * Momentum
+             * @description Variação relativa vs. as 4 semanas anteriores
+             * @default 0
+             */
+            momentum: number;
+            /**
+             * Momentum Label
+             * @default steady
+             */
+            momentum_label: string;
+        };
+        /** TopicDetail */
+        TopicDetail: {
+            /** Slug */
+            slug: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Keywords */
+            keywords?: string[];
+            /** Paper Count */
+            paper_count: number;
+            /** Recent Papers */
+            recent_papers: number;
+            /** Prior Papers */
+            prior_papers: number;
+            /** Momentum */
+            momentum: number;
+            /** Momentum Label */
+            momentum_label: string;
+            /** Timeline */
+            timeline?: components["schemas"]["TopicPoint"][];
+            /** Top Authors */
+            top_authors?: components["schemas"]["TopicAuthor"][];
+            /** Papers */
+            papers?: components["schemas"]["PaperCard"][];
+            /** Last Clustered At */
+            last_clustered_at?: string | null;
+        };
+        /**
+         * TopicPoint
+         * @description Um ponto na série temporal.
+         */
+        TopicPoint: {
+            /**
+             * Week
+             * Format: date-time
+             */
+            week: string;
+            /** Papers */
+            papers: number;
+            /** Citations */
+            citations: number;
+            /** Mean Priority */
+            mean_priority: number;
+            /** Hn Mentions */
+            hn_mentions: number;
+        };
+        /** TopicsListResponse */
+        TopicsListResponse: {
+            /** Topics */
+            topics: components["schemas"]["TopicCard"][];
+            /** Total */
+            total: number;
+            /** Clustered At */
+            clustered_at?: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -874,6 +1072,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GenerateModeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_topics_v1_topics_get: {
+        parameters: {
+            query?: {
+                sort?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopicsListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    field_pulse_v1_topics_pulse_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PulseResponse"];
+                };
+            };
+        };
+    };
+    get_topic_v1_topics__slug__get: {
+        parameters: {
+            query?: {
+                paper_limit?: number;
+                weeks?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopicDetail"];
                 };
             };
             /** @description Validation Error */

@@ -25,6 +25,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.5,
     },
+    {
+      url: `${SITE_URL}/pulse`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 0.8,
+    },
+    {
+      url: `${SITE_URL}/topics`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
   ];
 
   try {
@@ -47,7 +59,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: e.is_decoded ? 0.8 : 0.3,
     }));
 
-    return [...staticRoutes, ...paperRoutes];
+    let topicRoutes: MetadataRoute.Sitemap = [];
+    try {
+      const res = await fetch(`${API_BASE}/v1/topics?limit=200`, {
+        next: { revalidate: 3600 },
+      });
+      if (res.ok) {
+        const data: { topics: Array<{ slug: string }> } = await res.json();
+        topicRoutes = data.topics.map((t) => ({
+          url: `${SITE_URL}/topic/${t.slug}`,
+          lastModified: new Date(),
+          changeFrequency: "weekly" as const,
+          priority: 0.6,
+        }));
+      }
+    } catch {
+      // segue sem tópicos
+    }
+
+    return [...staticRoutes, ...topicRoutes, ...paperRoutes];
   } catch {
     return staticRoutes;
   }
