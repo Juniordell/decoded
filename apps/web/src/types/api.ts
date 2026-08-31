@@ -290,6 +290,101 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/authors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Authors
+         * @description Autores mais ativos no corpus.
+         */
+        get: operations["list_authors_v1_authors_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/authors/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Author */
+        get: operations["get_author_v1_authors__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/institutions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Institutions */
+        get: operations["list_institutions_v1_institutions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/institutions/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Institution */
+        get: operations["get_institution_v1_institutions__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/follows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Follows
+         * @description Tudo que o usuário segue. Alimenta o digest.
+         */
+        get: operations["list_follows_v1_follows_get"];
+        put?: never;
+        /**
+         * Toggle Follow
+         * @description Segue ou deixa de seguir um autor, instituição ou tópico.
+         */
+        post: operations["toggle_follow_v1_follows_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/health": {
         parameters: {
             query?: never;
@@ -328,12 +423,80 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AuthorCard */
+        AuthorCard: {
+            /** Slug */
+            slug: string;
+            /** Name */
+            name: string;
+            /** Affiliation */
+            affiliation?: string | null;
+            /** Paper Count */
+            paper_count: number;
+            /** Total Citations */
+            total_citations: number;
+            /**
+             * Is Disambiguated
+             * @default false
+             */
+            is_disambiguated: boolean;
+        };
+        /** AuthorDetail */
+        AuthorDetail: {
+            /** Slug */
+            slug: string;
+            /** Name */
+            name: string;
+            /** Affiliation */
+            affiliation?: string | null;
+            /** Institution Slug */
+            institution_slug?: string | null;
+            /** Paper Count */
+            paper_count: number;
+            /** Total Citations */
+            total_citations: number;
+            /** Is Disambiguated */
+            is_disambiguated: boolean;
+            /** First Paper At */
+            first_paper_at?: string | null;
+            /** Latest Paper At */
+            latest_paper_at?: string | null;
+            /** Topics */
+            topics?: components["schemas"]["AuthorTopic"][];
+            /** Coauthors */
+            coauthors?: components["schemas"]["CoAuthor"][];
+            /** Papers */
+            papers?: components["schemas"]["PaperCard"][];
+            /**
+             * Is Following
+             * @default false
+             */
+            is_following: boolean;
+        };
         /** AuthorOut */
         AuthorOut: {
             /** Name */
             name: string;
             /** Affiliation */
             affiliation?: string | null;
+        };
+        /** AuthorTopic */
+        AuthorTopic: {
+            /** Slug */
+            slug: string;
+            /** Name */
+            name: string;
+            /** Paper Count */
+            paper_count: number;
+        };
+        /** CoAuthor */
+        CoAuthor: {
+            /** Slug */
+            slug: string;
+            /** Name */
+            name: string;
+            /** Shared Papers */
+            shared_papers: number;
         };
         /** FeedResponse */
         FeedResponse: {
@@ -345,6 +508,22 @@ export interface components {
             has_more: boolean;
             /** Next Cursor */
             next_cursor?: string | null;
+        };
+        /** FollowRequest */
+        FollowRequest: {
+            /** Target Type */
+            target_type: string;
+            /** Slug */
+            slug: string;
+        };
+        /** FollowResponse */
+        FollowResponse: {
+            /** Target Type */
+            target_type: string;
+            /** Slug */
+            slug: string;
+            /** Following */
+            following: boolean;
         };
         /** GenerateModeResponse */
         GenerateModeResponse: {
@@ -374,6 +553,54 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** InstitutionCard */
+        InstitutionCard: {
+            /** Slug */
+            slug: string;
+            /** Name */
+            name: string;
+            /** Country Code */
+            country_code?: string | null;
+            /** Paper Count */
+            paper_count: number;
+            /** Author Count */
+            author_count: number;
+            /** Total Citations */
+            total_citations: number;
+        };
+        /** InstitutionDetail */
+        InstitutionDetail: {
+            /** Slug */
+            slug: string;
+            /** Name */
+            name: string;
+            /** Country Code */
+            country_code?: string | null;
+            /** Paper Count */
+            paper_count: number;
+            /** Author Count */
+            author_count: number;
+            /** Total Citations */
+            total_citations: number;
+            /** Top Authors */
+            top_authors?: components["schemas"]["AuthorCard"][];
+            /** Topics */
+            topics?: components["schemas"]["AuthorTopic"][];
+            /** Papers */
+            papers?: components["schemas"]["PaperCard"][];
+            /**
+             * Is Following
+             * @default false
+             */
+            is_following: boolean;
+        };
+        /** InstitutionsListResponse */
+        InstitutionsListResponse: {
+            /** Institutions */
+            institutions?: components["schemas"]["InstitutionCard"][];
+            /** Total */
+            total: number;
         };
         /** MeResponse */
         MeResponse: {
@@ -493,6 +720,13 @@ export interface components {
             };
             /** Decoded At */
             decoded_at?: string | null;
+        };
+        /** PeopleListResponse */
+        PeopleListResponse: {
+            /** Authors */
+            authors?: components["schemas"]["AuthorCard"][];
+            /** Total */
+            total: number;
         };
         /**
          * PulseResponse
@@ -1158,6 +1392,188 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TopicDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_authors_v1_authors_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                min_papers?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PeopleListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_author_v1_authors__slug__get: {
+        parameters: {
+            query?: {
+                paper_limit?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_institutions_v1_institutions_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstitutionsListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_institution_v1_institutions__slug__get: {
+        parameters: {
+            query?: {
+                paper_limit?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstitutionDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_follows_v1_follows_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FollowResponse"][];
+                };
+            };
+        };
+    };
+    toggle_follow_v1_follows_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FollowRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FollowResponse"];
                 };
             };
             /** @description Validation Error */

@@ -126,16 +126,88 @@ class Author(Base):
     __tablename__ = "authors"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    openalex_id: Mapped[Optional[str]] = mapped_column(String(100), unique=True, nullable=True)
-    name: Mapped[str] = mapped_column(String(300), nullable=False, index=True)
-    affiliation: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    h_index: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
-    papers: Mapped[list[Paper]] = relationship(
+    # Chave de desambiguação. Quando presente, é confiável.
+    openalex_id: Mapped[Optional[str]] = mapped_column(
+        String(100), unique=True, nullable=True, index=True
+    )
+    # Fallback: nome normalizado. Usado quando não há openalex_id.
+    normalized_name: Mapped[str] = mapped_column(String(300), index=True)
+
+    slug: Mapped[str] = mapped_column(String(160), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(300), nullable=False, index=True)
+
+    affiliation: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    institution_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("institutions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    h_index: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    total_citations: Mapped[int] = mapped_column(Integer, default=0)
+    paper_count: Mapped[int] = mapped_column(Integer, default=0)
+
+    # True quando veio da OpenAlex; False quando é agrupamento por nome
+    is_disambiguated: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    papers: Mapped[list["Paper"]] = relationship(
         secondary=paper_authors,
         back_populates="authors",
     )
+    institution: Mapped[Optional["Institution"]] = relationship(
+        back_populates="authors"
+    )
 
+    __table_args__ = (
+        Index("ix_authors_paper_count", "paper_count"),
+    )
+
+
+class Institution(Base):
+    __tablename__ = "institutions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    openalex_id: Mapped[Optional[str]] = mapped_column(
+        String(100), unique=True, nullable=True, index=True
+    )
+    slug: Mapped[str] = mapped_column(String(160), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(400), nullable=False, index=True)
+
+    country_code: Mapped[Optional[str]] = mapped_column(String(4), nullable=True)
+    institution_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+
+    paper_count: Mapped[int] = mapped_column(Integer, default=0)
+    author_count: Mapped[int] = mapped_column(Integer, default=0)
+    total_citations: Mapped[int] = mapped_column(Integer, default=0)
+
+    authors: Mapped[list[Author]] = relationship(back_populates="institution")
+
+    __table_args__ = (
+        Index("ix_institutions_paper_count", "paper_count"),
+    )
+
+
+class Follow(Base):
+    """Usuário seguindo um autor, instituição ou tópico."""
+
+    __tablename__ = "follows"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+
+    target_type: Mapped[str] = mapped_column(String(20), nullable=False)  # author | institution | topic
+    target_id: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "target_type", "target_id", name="uq_follows_user_target"
+        ),
+        Index("ix_follows_target", "target_type", "target_id"),
+    )
 
 # ============================================================
 # Topics

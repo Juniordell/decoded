@@ -81,6 +81,16 @@ class OpenAlexClient:
                         if auth.get("institutions")
                         else None
                     ),
+                    "institution_openalex_id": (
+                        auth.get("institutions", [{}])[0].get("id")
+                        if auth.get("institutions")
+                        else None
+                    ),
+                    "country_code": (
+                        auth.get("institutions", [{}])[0].get("country_code")
+                        if auth.get("institutions")
+                        else None
+                    ),
                 }
                 for auth in work.get("authorships", [])
             ],

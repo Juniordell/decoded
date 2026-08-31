@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { PaperCard } from "@/components/paper-card";
 import { TimelineChart } from "@/components/topics/timeline-chart";
 import { ApiError, api } from "@/lib/api";
+import { FollowButton } from "@/components/follow-button";
 
 export const revalidate = 1800;
 
@@ -66,9 +67,14 @@ export default async function TopicPage({
         ← Topics
       </Link>
 
-      <h1 className="mt-5 font-serif text-[34px] leading-[1.15] tracking-tight">
-        {topic.name}
-      </h1>
+      <div className="mt-5 flex items-start justify-between gap-6">
+        <h1 className="min-w-0 font-serif text-[34px] leading-[1.15] tracking-tight">
+          {topic.name}
+        </h1>
+        <div className="shrink-0">
+          <FollowButton targetType="topic" slug={topic.slug} />
+        </div>
+      </div>
 
       {topic.description && (
         <p className="mt-4 text-[16px] leading-relaxed text-muted-foreground">

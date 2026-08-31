@@ -152,3 +152,88 @@ class PulseResponse(BaseModel):
     total_papers: int
     weeks_covered: int
     clustered_at: datetime | None = None
+
+
+class AuthorCard(BaseModel):
+    slug: str
+    name: str
+    affiliation: str | None = None
+    paper_count: int
+    total_citations: int
+    is_disambiguated: bool = False
+
+
+class CoAuthor(BaseModel):
+    slug: str
+    name: str
+    shared_papers: int
+
+
+class AuthorTopic(BaseModel):
+    slug: str
+    name: str
+    paper_count: int
+
+
+class AuthorDetail(BaseModel):
+    slug: str
+    name: str
+    affiliation: str | None = None
+    institution_slug: str | None = None
+    paper_count: int
+    total_citations: int
+    is_disambiguated: bool
+
+    first_paper_at: datetime | None = None
+    latest_paper_at: datetime | None = None
+
+    topics: list[AuthorTopic] = Field(default_factory=list)
+    coauthors: list[CoAuthor] = Field(default_factory=list)
+    papers: list[PaperCard] = Field(default_factory=list)
+
+    is_following: bool = False
+
+
+class InstitutionCard(BaseModel):
+    slug: str
+    name: str
+    country_code: str | None = None
+    paper_count: int
+    author_count: int
+    total_citations: int
+
+
+class InstitutionDetail(BaseModel):
+    slug: str
+    name: str
+    country_code: str | None = None
+    paper_count: int
+    author_count: int
+    total_citations: int
+
+    top_authors: list[AuthorCard] = Field(default_factory=list)
+    topics: list[AuthorTopic] = Field(default_factory=list)
+    papers: list[PaperCard] = Field(default_factory=list)
+
+    is_following: bool = False
+
+
+class PeopleListResponse(BaseModel):
+    authors: list[AuthorCard] = Field(default_factory=list)
+    total: int
+
+
+class InstitutionsListResponse(BaseModel):
+    institutions: list[InstitutionCard] = Field(default_factory=list)
+    total: int
+
+
+class FollowRequest(BaseModel):
+    target_type: str = Field(..., pattern="^(author|institution|topic)$")
+    slug: str
+
+
+class FollowResponse(BaseModel):
+    target_type: str
+    slug: str
+    following: bool
