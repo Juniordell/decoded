@@ -27,7 +27,7 @@ export async function generateMetadata({
   }
 }
 
-function formatYear(iso: string | null): string {
+function formatYear(iso: string | null | undefined): string {
   return iso ? new Date(iso).getFullYear().toString() : "—";
 }
 

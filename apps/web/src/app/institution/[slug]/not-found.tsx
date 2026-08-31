@@ -7,16 +7,16 @@ export default function NotFound() {
         404
       </p>
       <h1 className="mt-4 font-serif text-3xl tracking-tight">
-        Topic not found
+        Institution not found
       </h1>
       <p className="mt-3 text-[15px] text-muted-foreground">
-        Topics are re-clustered weekly, so some slugs change.
+        Institutions are re-clustered weekly, so some slugs change.
       </p>
       <Link
-        href="/topics"
+        href="/institutions"
         className="mt-8 inline-block font-mono text-[10px] uppercase tracking-[0.16em] text-accent hover:underline"
       >
-        ← All topics
+        ← All institutions
       </Link>
     </main>
   );
