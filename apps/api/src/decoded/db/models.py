@@ -508,3 +508,84 @@ class ClusteringRun(Base):
     naming_cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
 
     log: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+class DigestStatus(str, Enum):
+    PENDING = "pending"
+    SENT = "sent"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+
+
+class Digest(Base):
+    """
+    Um email de digest para um usuário numa semana.
+
+    Guarda o conteúdo montado, não só o registro de envio. Isso permite
+    reabrir o que foi enviado, depurar reclamações, e servir uma versão
+    web do email.
+    """
+
+    __tablename__ = "digests"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+
+    week_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    status: Mapped[DigestStatus] = mapped_column(
+        SQLEnum(DigestStatus, name="digest_status"),
+        default=DigestStatus.PENDING,
+        index=True,
+    )
+
+    # Conteúdo montado, na ordem de exibição
+    content: Mapped[dict] = mapped_column(JSON, default=dict)
+    paper_count: Mapped[int] = mapped_column(Integer, default=0)
+
+    subject: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+
+    sent_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    provider_message_id: Mapped[Optional[str]] = mapped_column(
+        String(200), nullable=True, index=True
+    )
+    error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Engajamento — preenchido por webhook no Day 33
+    opened_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    clicked_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "week_start", name="uq_digests_user_week"),
+        Index("ix_digests_status_week", "status", "week_start"),
+    )
+
+
+class DigestPreference(Base):
+    """Preferências de digest por usuário."""
+
+    __tablename__ = "digest_preferences"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True
+    )
+
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    max_papers: Mapped[int] = mapped_column(Integer, default=6)
+
+    # Se não segue nada, cai no feed geral por prioridade
+    include_general: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    # Token opaco para o link de descadastro — não expõe o user_id
+    unsubscribe_token: Mapped[str] = mapped_column(
+        String(64), unique=True, index=True, nullable=False
+    )

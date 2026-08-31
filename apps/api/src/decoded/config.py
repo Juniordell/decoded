@@ -66,4 +66,7 @@ class Settings(BaseSettings):
     mlflow_tracking_uri: str = "sqlite:///mlflow.db"
     mlflow_experiment_prefix: str = "decoded"
 
+    site_url: str = "http://localhost:3000"
+    digest_subject_model: str = "claude-haiku-4-5-20251001"
+
 settings = Settings()
