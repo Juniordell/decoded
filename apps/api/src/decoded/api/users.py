@@ -4,11 +4,13 @@ from datetime import datetime
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from fastapi import Query
 
+from decoded.db.models import DigestPreference
 from decoded.api.schemas import PaperCard
 from decoded.auth.clerk import get_current_user
 from decoded.db.base import get_session
@@ -182,3 +184,101 @@ async def record_read(
         ReadEvent(user_id=user.id, paper_id=paper_id, section=body.section)
     )
     await session.commit()
+
+
+class UnsubscribeResponse(BaseModel):
+    unsubscribed: bool
+    email: str | None = None
+
+
+class DigestPrefsResponse(BaseModel):
+    enabled: bool
+    max_papers: int
+    include_general: bool
+
+
+class UpdateDigestPrefsRequest(BaseModel):
+    enabled: bool | None = None
+    max_papers: int | None = Field(default=None, ge=3, le=12)
+    include_general: bool | None = None
+
+
+@router.post("/digest/unsubscribe", response_model=UnsubscribeResponse)
+async def unsubscribe(
+    token: str = Query(..., min_length=10, max_length=64),
+    session: AsyncSession = Depends(get_session),
+) -> UnsubscribeResponse:
+    """
+    Descadastro por token. Sem autenticação — o link do email tem que
+    funcionar direto, sem login.
+    """
+    prefs = (
+        await session.execute(
+            select(DigestPreference).where(
+                DigestPreference.unsubscribe_token == token
+            )
+        )
+    ).scalar_one_or_none()
+
+    if prefs is None:
+        raise HTTPException(status_code=404, detail="Link inválido ou expirado")
+
+    prefs.enabled = False
+    await session.commit()
+
+    email = (
+        await session.execute(select(User.email).where(User.id == prefs.user_id))
+    ).scalar_one_or_none()
+
+    logger.info("digest.unsubscribed", user_id=prefs.user_id)
+
+    # Devolve só o domínio mascarado — confirma sem expor o endereço
+    masked = None
+    if email and "@" in email:
+        local, domain = email.split("@", 1)
+        masked = f"{local[:2]}…@{domain}"
+
+    return UnsubscribeResponse(unsubscribed=True, email=masked)
+
+
+@router.get("/digest/preferences", response_model=DigestPrefsResponse)
+async def get_digest_prefs(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> DigestPrefsResponse:
+    from decoded.digest.builder import get_or_create_preferences
+
+    prefs = await get_or_create_preferences(session, user)
+    await session.commit()
+
+    return DigestPrefsResponse(
+        enabled=prefs.enabled,
+        max_papers=prefs.max_papers,
+        include_general=prefs.include_general,
+    )
+
+
+@router.patch("/digest/preferences", response_model=DigestPrefsResponse)
+async def update_digest_prefs(
+    body: UpdateDigestPrefsRequest,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> DigestPrefsResponse:
+    from decoded.digest.builder import get_or_create_preferences
+
+    prefs = await get_or_create_preferences(session, user)
+
+    if body.enabled is not None:
+        prefs.enabled = body.enabled
+    if body.max_papers is not None:
+        prefs.max_papers = body.max_papers
+    if body.include_general is not None:
+        prefs.include_general = body.include_general
+
+    await session.commit()
+
+    return DigestPrefsResponse(
+        enabled=prefs.enabled,
+        max_papers=prefs.max_papers,
+        include_general=prefs.include_general,
+    )

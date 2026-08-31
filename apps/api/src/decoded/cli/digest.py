@@ -21,6 +21,7 @@ from decoded.db.models import Digest, User
 from decoded.digest.builder import build_all, build_for_user, week_start
 from decoded.digest.template import render_html, render_text
 from decoded.logging import configure_logging
+from decoded.digest.sender import send_one, send_pending
 
 logger = structlog.get_logger()
 
@@ -136,8 +137,13 @@ async def cmd_list() -> int:
 async def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "command", choices=["build", "build-all", "preview", "list"]
+        "command",
+        choices=["build", "build-all", "preview", "list", "send", "test"],
     )
+    parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--digest-id", type=int)
+    parser.add_argument("--to", help="Email de teste, sem marcar como enviado")
     parser.add_argument("--user-id", type=int)
     parser.add_argument("--force", action="store_true")
     parser.add_argument(
@@ -169,7 +175,72 @@ async def main() -> int:
     if args.command == "list":
         return await cmd_list()
 
+    if args.command == "send":
+        return await cmd_send(args.weeks_ago, args.limit, args.dry_run)
+
+    if args.command == "test":
+        if not args.digest_id or not args.to:
+            print("--digest-id e --to são obrigatórios")
+            return 1
+        return await cmd_test(args.digest_id, args.to)
+
     return 1
+
+
+async def cmd_send(
+    weeks_ago: int,
+    limit: int | None,
+    dry_run: bool,
+) -> int:
+    if not settings.resend_api_key and not dry_run:
+        print("RESEND_API_KEY não definida")
+        return 1
+
+    target = datetime.now(timezone.utc) - timedelta(weeks=weeks_ago)
+
+    result = await send_pending(
+        api_key=settings.resend_api_key or "",
+        from_email=settings.digest_from_email,
+        site_url=settings.site_url,
+        reply_to=settings.digest_reply_to,
+        target_week=target,
+        limit=limit,
+        daily_cap=settings.digest_daily_cap,
+        rate_per_second=settings.digest_send_rate_per_second,
+        dry_run=dry_run,
+    )
+
+    print("\n" + "=" * 68)
+    for k, v in result.items():
+        if k == "errors" and v:
+            print(f"  {k}:")
+            for e in v:
+                print(f"    {e}")
+        else:
+            print(f"  {k:20} {v}")
+    print("=" * 68 + "\n")
+    return 0
+
+
+async def cmd_test(digest_id: int, to: str) -> int:
+    if not settings.resend_api_key:
+        print("RESEND_API_KEY não definida")
+        return 1
+
+    result = await send_one(
+        digest_id=digest_id,
+        api_key=settings.resend_api_key,
+        from_email=settings.digest_from_email,
+        site_url=settings.site_url,
+        reply_to=settings.digest_reply_to,
+        override_email=to,
+    )
+
+    print("\n" + "=" * 68)
+    for k, v in result.items():
+        print(f"  {k:20} {v}")
+    print("=" * 68 + "\n")
+    return 0 if "error" not in result else 1
 
 
 if __name__ == "__main__":

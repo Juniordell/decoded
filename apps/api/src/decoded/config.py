@@ -69,4 +69,13 @@ class Settings(BaseSettings):
     site_url: str = "http://localhost:3000"
     digest_subject_model: str = "claude-haiku-4-5-20251001"
 
+    resend_api_key: Optional[str] = None
+    resend_webhook_secret: Optional[str] = None
+    digest_from_email: str = "Decoded <onboarding@resend.dev>"
+    digest_reply_to: Optional[str] = None
+
+    # Free tier do Resend: 100/dia, 2 req/s
+    digest_send_rate_per_second: float = 2.0
+    digest_daily_cap: int = 100
+
 settings = Settings()
