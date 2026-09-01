@@ -21,6 +21,7 @@ from decoded.db.repositories.credits import CreditsRepository, InsufficientCredi
 from decoded.modes.pipeline import generate_mode
 from decoded.auth.clerk import get_current_user
 from decoded.db.base import async_session_factory
+from decoded.observability.product import track
 
 logger = structlog.get_logger()
 
@@ -169,6 +170,25 @@ async def _generate_in_background(
                     await credits.refund(user, paper_id, mode)
                     await session.commit()
                     log.info("mode.refunded", reason=result.get("status"))
+        async with async_session_factory() as session:
+            clerk_id = (
+                await session.execute(
+                    select(User.clerk_user_id).where(User.id == user_id)
+                )
+            ).scalar_one_or_none()
+
+        if clerk_id:
+            track(
+                clerk_id,
+                "mode_generation_completed",
+                {
+                    "mode": mode,
+                    "arxiv_id": arxiv_id,
+                    "status": result.get("status"),
+                    "cost_usd": result.get("cost_usd", 0),
+                    "latency_ms": result.get("latency_ms", 0),
+                },
+            )
 
         log.info("mode.background_done", status=result.get("status"))
 

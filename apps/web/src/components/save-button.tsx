@@ -3,6 +3,7 @@
 import { SignInButton, useAuth } from "@clerk/nextjs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useApi } from "@/lib/use-api";
+import { EVENTS, capture } from "@/lib/analytics";
 
 interface SaveState {
   arxiv_id: string;
@@ -27,6 +28,9 @@ export function SaveButton({ arxivId }: { arxivId: string }) {
         body: JSON.stringify({ arxiv_id: arxivId }),
       }),
     onSuccess: (result) => {
+      capture(result.saved ? EVENTS.PAPER_SAVED : EVENTS.PAPER_UNSAVED, {
+        arxiv_id: arxivId,
+      });
       queryClient.setQueryData(["saved", arxivId], result);
       void queryClient.invalidateQueries({ queryKey: ["library"] });
     },

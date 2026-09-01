@@ -36,6 +36,7 @@ dependencies = [
     "scikit-learn (>=1.9.0,<2.0.0)",
     "resend (>=2.42.0,<3.0.0)",
     "svix (>=2.2.0,<3.0.0)",
+    "posthog (>=7.45.1,<8.0.0)",
 ]
 
 [tool.poetry]

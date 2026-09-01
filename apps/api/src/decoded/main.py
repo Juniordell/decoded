@@ -15,14 +15,21 @@ from decoded.cache.client import close_redis, get_redis
 from decoded.api.topics import router as topics_router
 from decoded.api.people import router as people_router
 from decoded.api.webhooks import router as webhooks_router
+from decoded.observability.product import (
+    init_product_analytics,
+    shutdown_product_analytics,
+)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     configure_logging(settings.log_level)
     init_tracing()
-    await get_redis()  # conecta cedo, loga se falhar
+    init_product_analytics()
+    await get_redis()
     logger.info("startup", app=settings.app_name, version=settings.version)
     yield
+    shutdown_product_analytics()
     await close_redis()
     flush_tracing()
     logger.info("shutdown")

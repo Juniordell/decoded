@@ -78,4 +78,7 @@ class Settings(BaseSettings):
     digest_send_rate_per_second: float = 2.0
     digest_daily_cap: int = 100
 
+    posthog_api_key: Optional[str] = None
+    posthog_host: str = "https://us.i.posthog.com"
+
 settings = Settings()

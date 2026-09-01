@@ -68,8 +68,8 @@ export function FeedList({
   return (
     <>
       <div>
-        {papers.map((p) => (
-          <PaperCard key={p.arxiv_id} paper={p} />
+        {papers.map((p, i) => (
+          <PaperCard key={p.arxiv_id} paper={p} source="feed" position={i} />
         ))}
       </div>
 

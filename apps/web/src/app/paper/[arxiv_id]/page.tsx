@@ -19,6 +19,7 @@ import { categoryShort, compactNumber, relativeTime } from "@/lib/format";
 import { SaveButton } from "@/components/save-button";
 import { PaperJsonLd } from "@/components/paper-json-ld";
 import { ModeSwitcher } from "@/components/modes/mode-switcher";
+import { SectionTracker } from "@/components/section-tracker";
 
 export const revalidate = 3600;
 
@@ -105,6 +106,10 @@ export default async function PaperPage({
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
       <PaperJsonLd paper={paper} oneSentence={one?.text ?? null} />
+      <SectionTracker
+        arxivId={paper.arxiv_id}
+        sectionIds={navItems.map((n) => n.id)}
+      />
       <div className="grid gap-12 lg:grid-cols-[1fr_160px]">
         <article className="min-w-0 max-w-2xl">
           <header className="mb-10">

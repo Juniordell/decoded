@@ -4,6 +4,7 @@ import { SignInButton, useAuth } from "@clerk/nextjs";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useApi } from "@/lib/use-api";
+import { EVENTS, capture } from "@/lib/analytics";
 
 interface FollowState {
   target_type: string;
@@ -32,6 +33,10 @@ export function FollowButton({
         body: JSON.stringify({ target_type: targetType, slug }),
       }),
     onSuccess: (result) => {
+      capture(result.following ? EVENTS.FOLLOWED : EVENTS.UNFOLLOWED, {
+        target_type: targetType,
+        slug,
+      });
       setFollowing(result.following);
       void queryClient.invalidateQueries({ queryKey: ["follows"] });
     },

@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { EVENTS, capture } from "@/lib/analytics";
 
 const EXAMPLES = [
   "how do models learn from fewer examples",
@@ -23,6 +24,10 @@ export function SearchBox({ autoFocus = false }: { autoFocus?: boolean }) {
   function submit(query: string) {
     const trimmed = query.trim();
     if (trimmed.length < 2) return;
+    capture(EVENTS.SEARCH_PERFORMED, {
+      query_length: trimmed.length,
+      from_example: EXAMPLES.includes(trimmed),
+    });
     router.push(`/search?q=${encodeURIComponent(trimmed)}`);
   }
 

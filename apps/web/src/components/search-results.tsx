@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { SearchHit } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
+import { EVENTS, capture } from "@/lib/analytics";
 
 export function SearchResults({
   hits,
@@ -36,7 +37,18 @@ export function SearchResults({
             key={hit.arxiv_id}
             className="border-b border-border py-6 last:border-b-0"
           >
-            <Link href={`/paper/${hit.arxiv_id}`} className="group block">
+          <Link
+              href={`/paper/${hit.arxiv_id}`}
+              className="group block"
+              onClick={() =>
+                capture(EVENTS.SEARCH_RESULT_CLICKED, {
+                  arxiv_id: hit.arxiv_id,
+                  position: i,
+                  score: hit.score,
+                  from_chunk: !!hit.snippet,
+                })
+              }
+            >
               <div className="mb-2 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                 <span className="tnum text-muted-foreground/50">
                   {String(i + 1).padStart(2, "0")}

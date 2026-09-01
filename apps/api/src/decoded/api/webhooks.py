@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from decoded.config import settings
 from decoded.db.base import get_session
 from decoded.db.models import Digest, DigestPreference, DigestStatus, User
+from decoded.observability.product import track
 
 logger = structlog.get_logger()
 
@@ -89,8 +90,16 @@ async def resend_webhook(
 
     now = datetime.now(timezone.utc)
 
+    clerk_id = (
+        await session.execute(
+            select(User.clerk_user_id).where(User.id == digest.user_id)
+        )
+    ).scalar_one_or_none()
+
     if event_type == "email.opened" and digest.opened_at is None:
         digest.opened_at = now
+        if clerk_id:
+            track(clerk_id, "digest_opened", {"digest_id": digest.id})
         log.info("webhook.opened", digest_id=digest.id)
 
     elif event_type == "email.clicked":
@@ -99,7 +108,10 @@ async def resend_webhook(
         # Um clique implica abertura, mesmo que o pixel tenha sido bloqueado
         if digest.opened_at is None:
             digest.opened_at = now
+        if clerk_id:
+            track(clerk_id, "digest_clicked", {"digest_id": digest.id})
         log.info("webhook.clicked", digest_id=digest.id)
+
 
     elif event_type in ("email.bounced", "email.complained"):
         digest.status = DigestStatus.FAILED

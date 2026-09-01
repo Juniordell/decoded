@@ -5,6 +5,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Show, SignInButton, UserButton } from "@clerk/nextjs";
+import { PostHogProvider } from "@/components/posthog-provider";
 
 const serif = Instrument_Serif({
   variable: "--font-serif",
@@ -76,13 +77,15 @@ export default function RootLayout({
         <body
           className={`${serif.variable} ${sans.variable} ${mono.variable} font-sans antialiased`}
         >
-          <Providers>
-            <div className="min-h-screen">
-              <SiteHeader />
-              {children}
-              <SiteFooter />
-            </div>
-          </Providers>
+          <PostHogProvider>
+            <Providers>
+              <div className="min-h-screen">
+                <SiteHeader />
+                {children}
+                <SiteFooter />
+              </div>
+            </Providers>
+          </PostHogProvider>
         </body>
       </html>
     </ClerkProvider>

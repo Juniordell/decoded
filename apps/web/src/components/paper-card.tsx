@@ -1,17 +1,41 @@
+"use client";
+
 import Link from "next/link";
 import type { PaperCard as PaperCardType } from "@/lib/api";
-import { categoryShort, compactNumber, relativeTime } from "@/lib/format";
+import { EVENTS, capture } from "@/lib/analytics";
+import { RelativeTime } from "@/components/relative-time";
+import { categoryShort, compactNumber } from "@/lib/format";
 
-export function PaperCard({ paper }: { paper: PaperCardType }) {
+export function PaperCard({
+  paper,
+  source = "feed",
+  position,
+}: {
+  paper: PaperCardType;
+  source?: string;
+  position?: number;
+}) {
   const categories = paper.categories ?? [];
   const authors = paper.authors ?? [];
   const decodedSections = paper.decoded_sections ?? [];
 
   return (
     <article className="group border-b border-border py-7 last:border-b-0">
-      <Link href={`/paper/${paper.arxiv_id}`} className="block">
+      <Link
+        href={`/paper/${paper.arxiv_id}`}
+        className="block"
+        onClick={() =>
+          capture(EVENTS.PAPER_VIEWED, {
+            arxiv_id: paper.arxiv_id,
+            source,
+            position,
+            is_decoded: paper.is_decoded,
+            priority_score: paper.priority_score,
+          })
+        }
+      >
         <div className="mb-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-          <span className="tnum">{relativeTime(paper.published_at)}</span>
+          <RelativeTime iso={paper.published_at} className="tnum" />
 
           {categories.slice(0, 2).map((c) => (
             <span key={c} className="text-muted-foreground/70">

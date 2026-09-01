@@ -20,6 +20,7 @@ from decoded.db.base import async_session_factory
 from decoded.db.models import Digest, DigestStatus, User
 from decoded.digest.builder import week_start
 from decoded.digest.template import render_html, render_text
+from decoded.observability.product import track
 
 logger = structlog.get_logger()
 
@@ -141,8 +142,10 @@ async def send_pending(
             log.warning("send.daily_cap_reached", cap=daily_cap)
             return {"error": "daily_cap_reached", "sent_today": already_sent}
 
+        # clerk_user_id vem junto porque o PostHog precisa do mesmo
+        # distinct_id que o frontend usa — se divergir, a jornada quebra
         stmt = (
-            select(Digest, User.email)
+            select(Digest, User.email, User.clerk_user_id)
             .join(User, User.id == Digest.user_id)
             .where(
                 Digest.week_start == week,
@@ -177,7 +180,7 @@ async def send_pending(
             rate_per_second=rate_per_second,
         )
 
-    for digest, email in rows:
+    for digest, email, clerk_id in rows:
         item_log = log.bind(digest_id=digest.id, email=email)
 
         try:
@@ -223,6 +226,17 @@ async def send_pending(
                 d.provider_message_id = message_id
                 d.error = None
                 await write_session.commit()
+
+            if clerk_id:
+                track(
+                    distinct_id=clerk_id,
+                    event="digest_sent",
+                    properties={
+                        "week": week.strftime("%Y-%m-%d"),
+                        "paper_count": digest.paper_count,
+                        "personalized": digest.content.get("personalized", False),
+                    },
+                )
 
             result.sent += 1
             result.message_ids.append(message_id)
@@ -275,7 +289,7 @@ async def send_one(
     async with async_session_factory() as session:
         row = (
             await session.execute(
-                select(Digest, User.email)
+                select(Digest, User.email, User.clerk_user_id)
                 .join(User, User.id == Digest.user_id)
                 .where(Digest.id == digest_id)
             )
@@ -284,7 +298,7 @@ async def send_one(
     if row is None:
         return {"error": "digest_not_found"}
 
-    digest, user_email = row
+    digest, user_email, clerk_id = row
     to = override_email or user_email
 
     if not to:
@@ -312,7 +326,9 @@ async def send_one(
         tags={"test": "true"},
     )
 
-    # Só marca como enviado se foi para o destinatário real
+    # Só marca como enviado se foi para o destinatário real.
+    # Um teste enviado para outro endereço não conta como entrega,
+    # e portanto também não gera evento de analytics.
     if override_email is None:
         async with async_session_factory() as session:
             d = (
@@ -322,6 +338,17 @@ async def send_one(
             d.sent_at = datetime.now(timezone.utc)
             d.provider_message_id = message_id
             await session.commit()
+
+        if clerk_id:
+            track(
+                distinct_id=clerk_id,
+                event="digest_sent",
+                properties={
+                    "week": digest.week_start.strftime("%Y-%m-%d"),
+                    "paper_count": digest.paper_count,
+                    "personalized": digest.content.get("personalized", False),
+                },
+            )
 
     logger.info("send_one.ok", digest_id=digest_id, to=to, message_id=message_id)
     return {"sent": True, "to": to, "message_id": message_id}

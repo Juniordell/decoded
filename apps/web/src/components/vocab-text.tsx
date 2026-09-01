@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/popover";
 import type { VocabTerm } from "@/lib/decoded-types";
 import { useMemo } from "react";
+import { EVENTS, capture } from "@/lib/analytics";
 
 /**
  * Renderiza texto marcando termos do vocabulário com popover de definição.
@@ -25,10 +26,14 @@ export function VocabText({
 
   return (
     <>
-      {segments.map((seg, i) =>
-        seg.term ? (
+      {segments.map((seg, i) => {
+        const term = seg.term;
+        return term ? (
           <Popover key={i}>
-            <PopoverTrigger className="cursor-help border-b border-dotted border-accent/60 transition-colors hover:border-accent hover:text-accent">
+            <PopoverTrigger
+              className="cursor-help border-b border-dotted border-accent/60 transition-colors hover:border-accent hover:text-accent"
+              onClick={() => capture(EVENTS.VOCAB_TERM_OPENED, { term: term.term })}
+            >
               {seg.text}
             </PopoverTrigger>
             <PopoverContent
@@ -37,17 +42,17 @@ export function VocabText({
               className="w-72 border border-border bg-background p-3.5 shadow-md"
             >
               <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-accent">
-                {seg.term.term}
+                {term.term}
               </p>
               <p className="mt-1.5 text-[13px] leading-relaxed text-foreground">
-                {seg.term.definition}
+                {term.definition}
               </p>
             </PopoverContent>
           </Popover>
         ) : (
           <span key={i}>{seg.text}</span>
-        ),
-      )}
+        );
+      })}
     </>
   );
 }

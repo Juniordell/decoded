@@ -3,6 +3,7 @@
 import { SignInButton, useAuth } from "@clerk/nextjs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { EVENTS, capture } from "@/lib/analytics";
 import { useApi } from "@/lib/use-api";
 import {
   ALL_MODES,
@@ -50,15 +51,25 @@ export function ModeSwitcher({ arxivId }: { arxivId: string }) {
   });
 
   const generate = useMutation({
-    mutationFn: (mode: ModeName) =>
-      authedFetch<{
+    mutationFn: (mode: ModeName) => {
+      capture(EVENTS.MODE_GENERATE_CLICKED, { mode, arxiv_id: arxivId });
+      return authedFetch<{
         mode: string;
         status: string;
         content: unknown;
         credits_remaining: number;
         poll_after_ms: number | null;
-      }>(`/v1/papers/${arxivId}/modes/${mode}/generate`, { method: "POST" }),
+      }>(`/v1/papers/${arxivId}/modes/${mode}/generate`, {
+        method: "POST",
+      });
+    },
     onSuccess: (result) => {
+      capture(EVENTS.MODE_GENERATED, {
+        mode: result.mode,
+        arxiv_id: arxivId,
+        cached: result.status === "ready",
+        credits_left: result.credits_remaining,
+      });
       void queryClient.invalidateQueries({ queryKey: ["me"] });
 
       if (result.status === "ready") {
@@ -66,9 +77,13 @@ export function ModeSwitcher({ arxivId }: { arxivId: string }) {
         return;
       }
 
-      // Gerando — entra em polling
       if (result.status === "generating") {
         setPolling(result.mode as ModeName);
+      }
+    },
+    onError: (error, mode) => {
+      if (error instanceof Error && error.message.includes("402")) {
+        capture(EVENTS.MODE_OUT_OF_CREDITS, { mode, arxiv_id: arxivId });
       }
     },
   });
@@ -104,6 +119,14 @@ export function ModeSwitcher({ arxivId }: { arxivId: string }) {
   }, [polled, arxivId, queryClient]);
 
   function selectMode(mode: ModeName | null) {
+    if (mode) {
+      const info = modeMap.get(mode);
+      capture(EVENTS.MODE_TAB_CLICKED, {
+        mode,
+        arxiv_id: arxivId,
+        was_cached: info?.status === "ready",
+      });
+    }
     const next = new URLSearchParams(params.toString());
     if (mode === null) next.delete("mode");
     else next.set("mode", mode);
