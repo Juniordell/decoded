@@ -83,4 +83,17 @@ class Settings(BaseSettings):
 
     podcast_script_model: str = "claude-sonnet-4-6"
 
+    elevenlabs_api_key: Optional[str] = None
+    elevenlabs_voice_id: Optional[str] = None
+    elevenlabs_model: str = "eleven_turbo_v2_5"
+
+    r2_account_id: Optional[str] = None
+    r2_access_key_id: Optional[str] = None
+    r2_secret_access_key: Optional[str] = None
+    r2_bucket: str = "decoded-audio"
+    r2_public_url: Optional[str] = None
+
+    # Teto de gasto — TTS cobra por caractere
+    podcast_daily_budget_usd: float = 3.0
+
 settings = Settings()

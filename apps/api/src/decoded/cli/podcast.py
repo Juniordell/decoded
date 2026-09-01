@@ -20,6 +20,7 @@ from decoded.logging import configure_logging
 from decoded.observability.tracing import flush as flush_tracing
 from decoded.observability.tracing import init_tracing
 from decoded.podcast.pipeline import generate_script
+from decoded.podcast.pipeline import generate_audio
 
 logger = structlog.get_logger()
 
@@ -113,11 +114,61 @@ async def cmd_list() -> int:
     return 0
 
 
+async def cmd_audio(arxiv_id: str, force: bool) -> int:
+    missing = [
+        name
+        for name, value in [
+            ("ELEVENLABS_API_KEY", settings.elevenlabs_api_key),
+            ("ELEVENLABS_VOICE_ID", settings.elevenlabs_voice_id),
+            ("R2_ACCOUNT_ID", settings.r2_account_id),
+            ("R2_ACCESS_KEY_ID", settings.r2_access_key_id),
+            ("R2_SECRET_ACCESS_KEY", settings.r2_secret_access_key),
+        ]
+        if not value
+    ]
+    if missing:
+        print(f"Faltando: {', '.join(missing)}")
+        return 1
+
+    init_tracing()
+    try:
+        result = await generate_audio(
+            arxiv_id=arxiv_id,
+            elevenlabs_api_key=settings.elevenlabs_api_key,
+            voice_id=settings.elevenlabs_voice_id,
+            tts_model=settings.elevenlabs_model,
+            r2_account_id=settings.r2_account_id,
+            r2_access_key_id=settings.r2_access_key_id,
+            r2_secret_access_key=settings.r2_secret_access_key,
+            r2_bucket=settings.r2_bucket,
+            r2_public_url=settings.r2_public_url,
+            daily_budget_usd=settings.podcast_daily_budget_usd,
+            force=force,
+        )
+    finally:
+        flush_tracing()
+
+    print("\n" + "=" * 68)
+    for k, v in result.items():
+        print(f"  {k:22} {v}")
+    print("=" * 68 + "\n")
+    return 0 if "error" not in result else 1
+
+
+async def cmd_full(arxiv_id: str, force: bool) -> int:
+    """Roteiro e áudio numa tacada."""
+    rc = await cmd_script(arxiv_id, force)
+    if rc != 0:
+        return rc
+    return await cmd_audio(arxiv_id, force)
+
+
 async def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=["script", "show", "list"])
+    parser.add_argument("command", choices=["script", "audio", "full", "show", "list"])
     parser.add_argument("--arxiv-id")
     parser.add_argument("--force", action="store_true")
+    
     args = parser.parse_args()
 
     configure_logging("INFO")
@@ -131,6 +182,12 @@ async def main() -> int:
 
     if args.command == "script":
         return await cmd_script(args.arxiv_id, args.force)
+
+    if args.command == "audio":
+        return await cmd_audio(args.arxiv_id, args.force)
+
+    if args.command == "full":
+        return await cmd_full(args.arxiv_id, args.force)
 
     return await cmd_show(args.arxiv_id)
 
