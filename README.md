@@ -1,4 +1,4 @@
-# decoded# Decoded
+# Decoded
 
 Every AI paper, explained for humans.
 
