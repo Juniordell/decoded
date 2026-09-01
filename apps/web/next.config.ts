@@ -23,6 +23,10 @@ const nextConfig: NextConfig = {
         source: "/ingest/:path*",
         destination: `${POSTHOG_HOST}/:path*`,
       },
+      {
+        source: "/feed.xml",
+        destination: `${API_URL}/v1/podcasts/feed.xml`,
+      },
     ];
   },
 };

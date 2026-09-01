@@ -119,6 +119,9 @@ function SiteHeader() {
           >
             Search
           </Link>
+          <Link href="/listen" className="transition-colors hover:text-foreground">
+            Listen
+          </Link>
 
           <Show when="signed-in">
             <Link

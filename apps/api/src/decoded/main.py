@@ -19,6 +19,7 @@ from decoded.observability.product import (
     init_product_analytics,
     shutdown_product_analytics,
 )
+from decoded.api.podcasts import router as podcasts_router
 
 
 @asynccontextmanager
@@ -56,6 +57,7 @@ app.include_router(modes_router)
 app.include_router(topics_router)
 app.include_router(people_router)
 app.include_router(webhooks_router)
+app.include_router(podcasts_router)
 
 @app.get("/v1/health")
 async def health() -> dict:

@@ -20,6 +20,7 @@ import { SaveButton } from "@/components/save-button";
 import { PaperJsonLd } from "@/components/paper-json-ld";
 import { ModeSwitcher } from "@/components/modes/mode-switcher";
 import { SectionTracker } from "@/components/section-tracker";
+import { PodcastSection } from "@/components/podcast/podcast-section";
 
 export const revalidate = 3600;
 
@@ -101,6 +102,7 @@ export default async function PaperPage({
     analogies?.items.length && { id: "analogies", label: "Analogies" },
     terms.length && { id: "vocabulary", label: "Vocabulary" },
     { id: "modes", label: "Modes" },
+    { id: "podcast", label: "Listen" },
   ].filter(Boolean) as NavItem[];
 
   return (
@@ -187,6 +189,8 @@ export default async function PaperPage({
                 <OneSentenceBlock data={one} />
               </section>
             )}
+
+            <PodcastSection arxivId={paper.arxiv_id} />
 
             {sixty && (
               <Section id="sixty" label="60-second read">
