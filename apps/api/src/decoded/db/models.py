@@ -589,3 +589,60 @@ class DigestPreference(Base):
     unsubscribe_token: Mapped[str] = mapped_column(
         String(64), unique=True, index=True, nullable=False
     )
+
+
+class PodcastStatus(str, Enum):
+    PENDING = "pending"
+    SCRIPTED = "scripted"
+    GENERATING_AUDIO = "generating_audio"
+    READY = "ready"
+    FAILED = "failed"
+
+
+class Podcast(Base):
+    """Episódio de podcast de um paper."""
+
+    __tablename__ = "podcasts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    paper_id: Mapped[int] = mapped_column(
+        ForeignKey("papers.id", ondelete="CASCADE"),
+        index=True,
+    )
+
+    status: Mapped[PodcastStatus] = mapped_column(
+        SQLEnum(PodcastStatus, name="podcast_status"),
+        default=PodcastStatus.PENDING,
+        index=True,
+    )
+
+    # Roteiro
+    script: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    script_model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    script_cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
+
+    # Áudio
+    audio_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    audio_bytes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    voice_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    audio_cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
+
+    # Capítulos com timestamp real, preenchidos depois do áudio
+    chapters: Mapped[list[dict]] = mapped_column(JSON, default=list)
+
+    schema_version: Mapped[int] = mapped_column(Integer, default=1)
+    prompt_version: Mapped[str] = mapped_column(String(20), nullable=False)
+
+    error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    play_count: Mapped[int] = mapped_column(Integer, default=0)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "paper_id",
+            "schema_version",
+            "prompt_version",
+            name="uq_podcasts_paper_versions",
+        ),
+        Index("ix_podcasts_status", "status"),
+    )

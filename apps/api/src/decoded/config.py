@@ -81,4 +81,6 @@ class Settings(BaseSettings):
     posthog_api_key: Optional[str] = None
     posthog_host: str = "https://us.i.posthog.com"
 
+    podcast_script_model: str = "claude-sonnet-4-6"
+
 settings = Settings()
