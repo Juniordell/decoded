@@ -3,22 +3,51 @@ prefect-version: 3.x
 
 pull:
   - prefect.deployments.steps.set_working_directory:
-      directory: ./apps/api
+      directory: "{{ $PWD }}"
+
+definitions:
+  work_pool: &work_pool
+    name: decoded-pool
 
 deployments:
   - name: ingestion-hourly
     entrypoint: src/decoded/flows/pipeline.py:ingestion_flow
-    work_pool:
-      name: decoded-pool
-    # schedule:
-    #   cron: "0 * * * *" # every hour on the hour
-    #   timezone: "UTC"
+    work_pool: *work_pool
+    schedules:
+      - cron: "7 * * * *"
+        timezone: "UTC"
     parameters:
       lookback_hours: 2
       poll_max: 100
-      enrich_limit: 50
-      parse_limit: 5
-      embed_limit: 10
-    tags:
-      - decoded
-      - ingestion
+      enrich_limit: 100
+      parse_limit: 10
+      embed_limit: 100
+    tags: [decoded, ingestion]
+
+  - name: weekly-cycle
+    entrypoint: src/decoded/flows/weekly.py:weekly_flow
+    work_pool: *work_pool
+    schedules:
+      # Terça, 09:00 BRT = 12:00 UTC
+      - cron: "0 12 * * 2"
+        timezone: "UTC"
+    parameters:
+      min_cluster_size: 5
+      cluster_limit: 5000
+      snapshot_weeks: 12
+      skip_send: false
+      dry_run_send: false
+    tags: [decoded, weekly, digest]
+
+  - name: nightly-decode
+    entrypoint: src/decoded/flows/decoding.py:nightly_decode_flow
+    work_pool: *work_pool
+    schedules:
+      # 02:00 BRT = 05:00 UTC
+      - cron: "0 5 * * *"
+        timezone: "UTC"
+    parameters:
+      limit: 20
+      min_priority: 2.0
+      daily_budget_usd: 5.0
+    tags: [decoded, decoding, costs-money]

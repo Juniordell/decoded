@@ -8,68 +8,64 @@ Decoded is a continuous-ingestion RAG system that pulls new AI/ML papers from
 arXiv, enriches them with citation and community signals, parses their PDFs,
 embeds them into two Qdrant collections, generates multi-layer human-readable
 "decoded" content per paper, and serves it as a public, search-indexable site
-with five on-demand explanation modes behind a credit system.
+with five on-demand explanation modes, automatically discovered research
+topics, and a personalized weekly email.
 
 The system is a monorepo: FastAPI backend, Next.js 15 frontend. Local
 development runs on docker-compose; production runs on Vercel + Neon + Qdrant
 Cloud, with the API moving to Fly.io in Week 6.
 
 ```
-OFFLINE — runs on a schedule, nobody is waiting
-┌─────────────────────────────────────────────────────────────────────┐
-│                      Continuous Ingestion (Prefect)                  │
-├─────────────────────────────────────────────────────────────────────┤
-│  arXiv API ──▶ Postgres ──▶ Enrichment ──▶ Parsing ──▶ Embedding    │
-│  (hourly)      (papers)     (OpenAlex,     (LlamaParse)  (Qdrant)   │
-│                              S2, HN)                                 │
-└─────────────────────────────────────────────────────────────────────┘
+OFFLINE — scheduled, nobody is waiting
+┌──────────────────────────────────────────────────────────────────────┐
+│  HOURLY  ingestion_flow                                              │
+│  arXiv ──▶ Postgres ──▶ Enrichment ──▶ Parsing ──▶ Embedding        │
+│           (papers)     (OpenAlex,     (LlamaParse)  (Qdrant)        │
+│                         S2, HN)                                      │
+└──────────────────────────────────────────────────────────────────────┘
                                   │
-                                  ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    Decoding Engine — 6 sections                      │
-├─────────────────────────────────────────────────────────────────────┤
-│   Haiku ──▶ one_sentence, sixty_second      (abstract)               │
-│   Sonnet ─▶ deep_dive                       (full paper)             │
-│   Vision ─▶ figures                         (extracted images)       │
-│   Haiku ──▶ vocabulary, analogies           (from deep_dive)         │
+        ┌─────────────────────────┼─────────────────────────┐
+        ▼                         ▼                         ▼
+┌───────────────────┐  ┌────────────────────┐  ┌──────────────────────┐
+│ NIGHTLY           │  │ WEEKLY             │  │ ON DEMAND            │
+│ decode top-N      │  │ cluster topics     │  │ 5 explanation modes  │
+│ via Batch API     │  │ snapshot weeks     │  │ credit-metered       │
+│ under a budget    │  │ backfill people    │  │ atomic claim         │
+│                   │  │ build + send digest│  │ cached forever       │
+│ 6 sections/paper  │  │                    │  │                      │
+└───────────────────┘  └────────────────────┘  └──────────────────────┘
+        │                         │                         │
+        ▼                         │                         │
+┌───────────────────────────┐     │                         │
+│ Evaluation + experiments  │     │                         │
+│ golden set · gate · MLflow│     │                         │
+└───────────────────────────┘     │                         │
+                                  │                         │
+ONLINE — per request, someone is waiting                    │
+┌───────────────────────────────────────────────────────────┼──────────┐
+│                                                           ▼          │
+│  Next.js (Vercel)                          FastAPI                   │
+│  ├─ /            feed, ISR 5min      ◀──▶  /v1/papers               │
+│  ├─ /paper/[id]  ISR 1h, JSON-LD,    ◀──▶  /v1/papers/{id}/modes    │
+│  │               OG image, modes                                     │
+│  ├─ /pulse       what's rising       ◀──▶  /v1/topics/pulse         │
+│  ├─ /topic/[s]   timeline, authors   ◀──▶  /v1/topics/{slug}        │
+│  ├─ /author/[s]  papers, coauthors   ◀──▶  /v1/authors/{slug}       │
+│  ├─ /search      hybrid + rerank     ◀──▶  /v1/search               │
+│  └─ /library     auth-guarded        ◀──▶  /v1/me/*                 │
 │                                                                      │
-│   Bulk path: Batch API, 50% cost · Manual trigger until Week 6       │
-└─────────────────────────────────────────────────────────────────────┘
-                   │                              │
-                   ▼                              │
-   ┌───────────────────────────────┐              │
-   │  Evaluation + experiments     │              │
-   │  Golden set · deterministic   │              │
-   │  checks · judges · gate       │              │
-   │  MLflow · DSPy optimization   │              │
-   └───────────────────────────────┘              │
-                                                  │
-ONLINE — runs per request, someone is waiting     │
-┌─────────────────────────────────────────────────┼───────────────────┐
-│                                                 ▼                    │
-│   Next.js (Vercel)                        FastAPI                    │
-│   ├─ /            feed, ISR 5min    ◀──▶  GET  /v1/papers           │
-│   ├─ /paper/[id]  ISR 1h, JSON-LD,  ◀──▶  GET  /v1/papers/{id}      │
-│   │               OG image, modes    ◀──▶  GET  /v1/papers/{id}/modes│
-│   │                                  ◀──▶  POST .../modes/{m}/generate│
-│   ├─ /search      dynamic           ◀──▶  GET  /v1/search           │
-│   └─ /library     auth-guarded      ◀──▶  GET  /v1/me/*             │
-│                                                                      │
-│   Every request: Redis cache → rate limit → Postgres / Qdrant        │
-│   Every LLM call and search traced to Langfuse                       │
+│  Every request:  Redis cache → rate limit → Postgres / Qdrant        │
+│  Every LLM call: traced to Langfuse                                  │
+│  Every action:   PostHog, via same-origin proxy                      │
 └──────────────────────────────────────────────────────────────────────┘
                                   │
                                   ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│              Explanation Modes — on demand, credit-metered           │
-├─────────────────────────────────────────────────────────────────────┤
-│   Sonnet ─▶ math, code                      (full paper)             │
-│   Sonnet ─▶ story, diagram                  (from deep_dive)         │
-│   Luna ───▶ analogy                         (from deep_dive)         │
-│                                                                      │
-│   Atomic claim → spend credit → background task → client polls       │
-│   Cache hit is free and permanent, for every later visitor           │
-└─────────────────────────────────────────────────────────────────────┘
+                     ┌────────────────────────┐
+                     │  Resend                │
+                     │  weekly digest, SPF /  │
+                     │  DKIM / DMARC, webhook │
+                     │  engagement tracking   │
+                     └────────────────────────┘
 ```
 
 ## Repository structure
@@ -92,20 +88,24 @@ decoded/
 │   │   │   ├── external/       Third-party API clients
 │   │   │   ├── flows/          Prefect orchestration
 │   │   │   ├── ingestion/      arXiv poller, enricher, scoring
+│   │   │   ├── digest/         Selection, subject writer, templates, sender
 │   │   │   ├── modes/          Explanation modes: schemas, prompts, generator
-│   │   │   ├── observability/  Langfuse tracing, MLflow experiments
+│   │   │   ├── observability/  Langfuse, MLflow, PostHog wrappers
 │   │   │   ├── parsing/        PDF parser abstraction + LlamaParse
-│   │   │   └── search/         Retrieval engine + Cohere reranker
+│   │   │   ├── people/         Author and institution backfill
+│   │   │   ├── search/         Retrieval engine + Cohere reranker
+│   │   │   └── topics/         Clustering, naming, snapshots
 │   │   ├── evals/              Golden set, metrics, judge, regression gate
 │   │   ├── optimization/       DSPy programs, metrics, compiled artefacts
+│   │   ├── prefect.yaml        Deployment definitions and schedules
 │   │   ├── scripts/            One-off smoke tests
 │   │   └── migrations/         Alembic
 │   └── web/                    Next.js 15 frontend
 │       ├── package.json
 │       └── src/
 │           ├── app/            App Router pages, OG images, sitemap, robots
-│           ├── components/     Feed, paper sections, search, modes, auth
-│           ├── lib/            API client, formatters, decoded and mode types
+│           ├── components/     Feed, paper sections, search, modes, topics
+│           ├── lib/            API client, formatters, analytics, types
 │           ├── types/          Generated from the FastAPI OpenAPI spec
 │           └── proxy.ts        Clerk middleware + /api rewrite
 ├── infra/
@@ -307,22 +307,51 @@ The Langfuse SDK API changed substantially between v2 and v4 (`trace()` and
 `generation()` became `start_observation(as_type=...)`). The wrapper isolates
 that: a version bump touches one file.
 
-## Orchestration (`flows/pipeline.py`)
+## Orchestration
 
-Prefect 3.x flow wraps the four CLI stages as retryable tasks:
+Three flows on separate cadences, defined in `apps/api/prefect.yaml`.
 
-- `arxiv-poll` — 3 retries, 30s/2m/10m backoff, 30-min cache to prevent accidental double-polling
-- `enrich-papers` — 2 retries, 60s/5m backoff
-- `parse-papers` — 2 retries, gated on `LLAMA_CLOUD_API_KEY`
-- `embed-papers` — 2 retries, gated on `OPENAI_API_KEY`
+| Flow | Schedule | What it does |
+|---|---|---|
+| `ingestion_flow` | hourly, minute 7 | arXiv → enrich → parse → embed |
+| `weekly_flow` | Tuesday 12:00 UTC | cluster → snapshots → people → build digests → send |
+| `nightly_decode_flow` | daily 05:00 UTC | batch-decode top-priority papers within budget |
 
-Flow runs sequentially: each stage only starts if the previous finished. Failure
-in one stage doesn't stop the others (parse failure still lets embed catch up
-later runs).
+Every task carries its own retry policy with exponential backoff. The arXiv
+poll additionally caches on input hash for 30 minutes, so a manual run
+immediately after a scheduled one does not hit the API twice.
 
-**Scheduling** is deferred to Week 6 (deploy). Current state: flow deployed to
-Prefect but not scheduled. Runs triggered manually while developing to avoid
-running up LLM costs before there's a product to serve.
+**The weekly order is mandatory.** The digest personalizes by followed topics
+and authors, so both must be current before it builds. Running it first would
+use last week's assignment, and a user following a topic that was just renamed
+would receive the wrong papers.
+
+**The ingestion cron sits at minute 7, not 0.** Everyone schedules on the hour,
+and arXiv takes a spike every time. Offsetting costs nothing.
+
+### Safety flags
+
+Flows that spend money or send email carry explicit off-switches as parameters:
+
+- `skip_send` — run the whole weekly cycle without dispatching a single email
+- `dry_run_send` — render every message and log it, send nothing
+- `daily_budget_usd` — checked *before* submitting the batch, since once a batch
+  is queued at Anthropic you will be billed for it regardless
+
+These exist because the weekly flow gets run dozens of times during
+development, and without them each test would mail real people.
+
+### Self-hosted Prefect
+
+Prefect Cloud's free tier blocks `process`-type work pools, which is what a
+local worker needs. Self-hosting removes that limitation.
+
+The server's own database runs on the Postgres instance already in
+`compose.yaml`, in a separate `prefect` database. SQLite was the default and
+failed under concurrency — three flows writing simultaneously produced
+`database is locked`, first from the telemetry heartbeat and then from anything
+under load. SQLite serializes writes by design; it was never the right backend
+for a job scheduler.
 
 ## Async everywhere
 
@@ -862,6 +891,295 @@ action (`gate.py --promote`), so quality standards only move deliberately.
 deterministic metrics only — no API calls, so a PR costs nothing. LLM-based
 metrics run locally before opening the PR.
 
+## Topic discovery
+
+Topics are not a taxonomy someone wrote once. They are discovered by
+clustering the embeddings the search already uses, then named by an LLM.
+
+### Why not arXiv categories
+
+arXiv classifies into `cs.AI`, `cs.CL`, `cs.LG`, `cs.CV` — four buckets for
+three hundred papers a day. `cs.CL` contains RLHF, tokenization, translation,
+evaluation, and agents. Filtering by it tells you nothing.
+
+What a reader wants is finer: *what is heating up in reasoning right now?*
+That is not an arXiv category. It is a grouping that emerges from the papers
+themselves.
+
+### The pipeline
+
+```
+Qdrant abstract vectors    3072 dimensions, one per paper
+        ↓
+UMAP                       5 dimensions, local neighbourhood preserved
+        ↓
+HDBSCAN                    dense regions become clusters, the rest are outliers
+        ↓
+c-TF-IDF                   words that distinguish each cluster from the others
+        ↓
+LLM naming                 keywords become "Speculative Decoding"
+        ↓
+Weekly snapshots           each topic's size, week by week
+```
+
+**Reusing the existing embeddings** matters more than it looks. BERTopic embeds
+its own documents by default, which would mean downloading a model, running it
+on CPU, and maintaining two embedding spaces — one for search, one for topics.
+Reusing guarantees that "similar in search" and "same topic" agree.
+
+**UMAP before HDBSCAN** because density barely exists in 3072 dimensions. Under
+the curse of dimensionality, every point sits roughly equidistant from every
+other, and there is no density for HDBSCAN to find. UMAP reduces to five
+dimensions while preserving which points were near which — which is exactly
+what clustering needs, and exactly what PCA would not preserve.
+
+**Outliers are a feature.** HDBSCAN does not force every point into a cluster.
+A paper belonging to no theme gets label `-1` and stays out. k-means would
+force an assignment, polluting topics with papers that do not belong. In
+practice around 20% of papers end up as outliers, which is the algorithm
+honestly saying it cannot classify them.
+
+`random_state` is pinned on UMAP. Without it, two runs over identical data
+produce different clusters, and you can never tell whether a change came from
+the data or from the seed.
+
+### Naming
+
+Raw keywords look like `["attention", "heads", "sparse", "kv", "cache"]`. That
+is not a topic name. An LLM turns it into "Attention Efficiency and KV
+Caching", with a one-sentence description of what the papers share.
+
+The prompt bans the obvious failure modes — "Advances in", "Novel Approaches
+to", "AI Safety Research" — and demands the field's own vocabulary. It also
+handles incoherent clusters explicitly: if the keywords genuinely share no
+subject, name the closest common thread and say so, rather than inventing
+coherence. A deterministic fallback covers naming failures.
+
+Naming 60 topics costs about $0.11.
+
+### Sample size is the dominant factor
+
+The first run over 147 papers produced two clusters, one of which the LLM
+itself named "Incoherent Cluster" — 121 papers with no shared theme. The
+titles confirmed it: sign language recognition, quantum architectures, medical
+imaging, red-teaming agents.
+
+That was not a tuning problem. A few hundred papers from an arbitrary week of
+arXiv are a random cross-section of all of AI; there is no structure to find.
+At 897 papers the same code produced 60 topics with names like "Visual Token
+Pruning" and "RAG Reliability and Failure Modes".
+
+Parameters now scale with the sample: `n_neighbors` and `min_cluster_size` are
+both derived from document count, and a warning fires when any single cluster
+exceeds 40% of the corpus — the signature of a degenerate run.
+
+### Snapshots
+
+Clustering answers "which topics exist." That is a photograph. `topic_snapshots`
+holds one row per (topic, week) with paper count, citations, mean priority, and
+HN mentions.
+
+Two reasons this is a table rather than a query:
+
+**Cost.** A dashboard showing 15 topics over 12 weeks would be 180 queries per
+visit.
+
+**Correctness.** Clustering reassigns papers from scratch on every run. A query
+computed today against July papers would measure *today's* assignment applied
+to old data — not what was true in July. A snapshot freezes the measurement.
+
+Snapshots are rebuilt entirely on each run rather than incrementally, for the
+same reason: old rows would reflect an assignment that no longer exists.
+
+Momentum compares the last N weeks against the N before, and separates three
+cases: `rising` and `cooling` for topics with history on both sides, and `new`
+for topics with no prior activity. Mixing them would let `new` topics — which
+have infinite relative growth — dominate the ranking and hide the real signal.
+
+Topics are deactivated rather than deleted when they vanish from a later run.
+Snapshots reference `topic_id`, and "this topic existed for six weeks and
+stopped" is itself information.
+
+## People and follows
+
+`Author` started as one row per name string. That breaks two ways: "Y. Zhang"
+is fifteen different people, and "Yiming Zhang" and "Y. Zhang" are one person
+across two rows.
+
+`openalex_id` is the disambiguation key — OpenAlex resolves identity using the
+co-authorship graph and affiliation history. Where it is absent, the fallback
+is a normalized name, and `is_disambiguated` records which path was taken.
+
+**The UI shows that distinction.** A name-matched author page carries a note
+saying papers by different researchers may appear together. Hiding it would
+misrepresent the data's precision.
+
+OpenAlex indexes arXiv papers with a one to two week lag, so recent papers
+mostly fall back to name matching. The rate improves on its own as papers age
+and the backfill reruns.
+
+The backfill rebuilds from scratch rather than incrementally, because
+disambiguation improves globally over time — an author without an
+`openalex_id` today gains one tomorrow, and merging those rows requires seeing
+all of them at once.
+
+`follows` is polymorphic: `(user_id, target_type, target_id)` covering authors,
+institutions, and topics. Three separate tables would triple the digest query.
+The cost is no foreign key, which is acceptable since the insert path validates
+existence first.
+
+## Weekly digest
+
+Content brings people in. Habit brings them back. The digest is the habit.
+
+### The selection problem
+
+A user follows three topics and two authors. Last week brought 180 papers, of
+which 40 match. The email fits six.
+
+Pick the wrong six and they unsubscribe. That is the only metric that matters.
+
+### Scoring
+
+Personal relevance dominates, objective quality breaks ties, diversity
+constrains the result.
+
+| Signal | Weight | Reasoning |
+|---|---|---|
+| Followed author | 5.0 | Following a person is a specific choice |
+| Followed topic | 3.0 | Following a topic is broad interest |
+| Followed institution | 2.0 | Weakest of the three intent signals |
+| Already decoded | 1.5 | A decoded paper is worth more in an email |
+| `log1p(priority_score)` | 1.0 | Tiebreaker, compressed |
+
+The log matters. Without it a paper with 500 citations drowns out every
+personal signal. Log compression keeps the difference between 10 and 100
+citations meaningful while flattening 400 versus 500.
+
+**Diversity is a hard constraint**, not a scoring term: at most two papers per
+topic and two per author. Someone following an active topic would otherwise get
+six papers on the same subject, and a single-subject email is worth less than a
+varied one. Greedy selection with caps, then backfill from the remainder if the
+caps cut too deep.
+
+**Every paper carries a reason** — "By Sergey Levine, who you follow", "In
+Long Context Retrieval, which you follow". This turns a list into curation. The
+reader understands the selection was made for them.
+
+### Subject line
+
+Generated by LLM from the selected papers, because the subject decides whether
+the email is opened at all.
+
+The prompt bans "Your weekly digest", "This week in AI", emoji, and exclamation
+marks, and demands a concrete hook — a number or a surprising claim. It also
+handles the common case where the papers share no theme: pick the most striking
+one and use the preview line to signal breadth, rather than forcing a false
+connection.
+
+A deterministic fallback (first paper's title) covers generation failure.
+
+### Storage
+
+`digests` stores the assembled content, not just a send record. That enables
+reopening exactly what was sent when someone complains, serving a web version
+of the email, and measuring which selections performed.
+
+Building is idempotent per `(user, week)`.
+
+### Sending
+
+Resend, with three guarantees:
+
+**Idempotence by status.** Only `PENDING` rows are picked up, and each is
+marked `SENT` on success.
+
+**Commit per email, not per batch.** Sending a hundred emails takes a minute.
+If the commit happened at the end and the process died at fifty, the next run
+would resend the first fifty. Immediate commit makes the batch resumable.
+
+**Isolated failure.** One bad recipient marks that row `FAILED` with the error
+persisted, and the loop continues.
+
+Rate limiting is enforced client-side by spacing calls, and a daily cap is
+checked before the batch starts rather than discovered through a 429.
+
+### Deliverability
+
+Email is the one channel where infrastructure decides whether your message
+exists. SPF, DKIM, and DMARC are configured on `readdecoded.com`; without them
+the digest lands in spam and you never find out why.
+
+A plain-text alternative is generated alongside the HTML. Spam filters penalize
+HTML-only mail — it is the signature of bulk send.
+
+The HTML itself is table-based with inline styles at a fixed 600px width. This
+is not a stylistic choice: Outlook renders with the Word engine, Gmail strips
+`<style>` blocks, and nested tables are the only common denominator.
+
+**Bounces and complaints disable the digest automatically.** A hard bounce or
+spam report destroys domain reputation, and a high rate sends *all* your mail
+to spam — including for people who want it. Disabling on the spot is
+self-preservation.
+
+Webhook signatures are verified with Svix. Without verification, anyone who
+discovers the endpoint could forge `email.bounced` and disable real users.
+
+Unsubscribe works from an opaque token with no login. A link carrying
+`?user_id=42` would let anyone unsubscribe anyone by incrementing the number.
+
+## Product analytics
+
+Langfuse answers what an LLM call cost. MLflow answers whether a prompt
+improved. Neither answers whether anyone comes back.
+
+PostHog covers the product questions: retention by cohort, funnel drop-off,
+which of the five modes is actually used, whether digest openers read more.
+
+### Reverse proxy
+
+PostHog is served through `/ingest` on the site's own domain via a Next.js
+rewrite. Ad blockers drop requests to analytics domains, and this audience is
+technical — the block rate is high enough that direct integration would lose 30%
+or more of the data, and lose it non-randomly.
+
+### Explicit events
+
+`autocapture` is off. Autocapture records every click on every element,
+producing thousands of events and no answers, because nothing records what a
+click *meant*. Named events with intentional properties are worth more than
+volume.
+
+Event names live in one exported constant. Strings scattered across files
+become `paper_viewed`, `paperViewed`, and `paper-view` in three places, and the
+funnel silently never closes.
+
+`person_profiles: "identified_only"` avoids creating a profile for every
+anonymous visitor.
+
+### What is captured
+
+Paper views carry `source` and `position`. Without them you know someone opened
+a paper; with them you know whether search converts better than the feed, and
+whether people click the first result or explore. The second fact tells you
+whether ranking works.
+
+Section visibility is tracked with an IntersectionObserver. A page view
+measures curiosity; reaching the deep dive measures value. If nobody reaches
+it, it costs money and delivers nothing — and only measurement reveals that.
+
+Search captures query *length*, not the query. Queries are personal data.
+Length answers "do people write questions or keywords" without storing what was
+typed. The actual queries already exist in Redis and Langfuse, where access is
+more controlled.
+
+### Shared identity
+
+The backend sends events the frontend cannot observe: digest sent, digest
+opened via webhook, real generation cost. Both sides use `clerk_user_id` as
+`distinct_id`. If they diverged, PostHog would see two people and every funnel
+crossing the boundary would break.
+
 ## Query pipeline (online)
 
 Everything above is offline work. This is what runs when someone visits.
@@ -1211,6 +1529,26 @@ Production plan (Week 6): tier the decoding.
 | Code quality metric | `ast.parse` plus AST walk for imports | LLM judge only | Objectively verifiable: zero cost, zero noise, zero subjectivity |
 | Prompt optimization | DSPy, tested and documented as a null result | Ship an unmeasured "improvement" | Measuring the noise floor first is what makes the comparison mean anything |
 | Experiment tracking | MLflow with no-op fallback | Weights & Biases, JSON files | Open source, local SQLite backend, no infrastructure |
+| Topic discovery | Clustering over existing embeddings | arXiv categories, hand-written taxonomy | Four arXiv buckets for 300 papers/day tells you nothing; topics should emerge from the papers |
+| Dimensionality reduction | UMAP before HDBSCAN | PCA, cluster in full dimension | Density barely exists in 3072 dimensions; UMAP preserves neighbourhood, PCA preserves variance |
+| Clustering algorithm | HDBSCAN | k-means, agglomerative | Discovers the number of clusters and admits outliers instead of forcing every paper somewhere |
+| Topic naming | LLM over c-TF-IDF keywords | Raw keywords, manual naming | "attention, heads, sparse, kv" is not a name; naming 60 topics costs $0.11 |
+| Topic lifecycle | Deactivate, never delete | Hard delete on disappearance | Snapshots reference topic_id; "existed for six weeks and stopped" is information |
+| Time series | Weekly snapshot rows | Compute on read | Clustering reassigns papers, so a query today measures today's assignment against old data |
+| Author identity | OpenAlex ID, name fallback, flag which | Name matching only, drop unresolved | Precision is visible to the reader instead of implied |
+| Follows | Polymorphic target_type + target_id | One table per followable type | Three tables would triple the digest query |
+| Digest ranking | Weighted personal relevance, log-compressed priority | Pure recency, pure priority score | Without log compression a 500-citation paper drowns every personal signal |
+| Digest diversity | Hard cap of 2 per topic and author | Scoring penalty, no constraint | A six-paper single-subject email is worth less than a varied one |
+| Digest subject | LLM-generated with a banned-phrase list | Static template | The subject decides whether the email is opened at all |
+| Digest storage | Persist assembled content | Store a send record only | Enables reopening what was sent, a web version, and measuring selection quality |
+| Send commit granularity | Per email | Per batch | A crash at fifty of a hundred would otherwise resend the first fifty |
+| Bounce handling | Auto-disable the digest | Log and continue | High bounce rates send all your mail to spam, including to people who want it |
+| Unsubscribe | Opaque token, no login | Signed user_id in the URL | An incrementable ID lets anyone unsubscribe anyone |
+| Product analytics | PostHog behind a same-origin proxy | Direct integration, self-hosted Plausible | Ad blockers cost 30%+ of a technical audience, non-randomly |
+| Event capture | Explicit named events | PostHog autocapture | Thousands of clicks with no record of intent answers nothing |
+| Search analytics | Query length, not query text | Store the query string | Queries are personal data; length answers the design question without retention |
+| Prefect backend | Postgres alongside the app database | SQLite (the default) | SQLite serializes writes; three concurrent flows produced `database is locked` |
+| Prefect hosting | Self-hosted server | Prefect Cloud free tier | Cloud free tier blocks `process` work pools, which a local worker requires |
 
 ## Roadmap
 
@@ -1218,7 +1556,7 @@ Production plan (Week 6): tier the decoding.
 - ~~**Week 2** — Decoding engine (6 sections, Batch API, Claude Vision), evaluation harness with regression gate~~ **done**
 - ~~**Week 3** — Next.js 15 frontend, semantic search with reranking, Clerk auth, SEO, Langfuse, production deploy~~ **done**
 - ~~**Week 4** — Five explanation modes on demand, credits and ledger, Redis caching and rate limiting, DSPy optimization, MLflow, mode evaluation~~ **done**
-- **Week 5** — Field Pulse dashboards, BERTopic clustering, weekly email digest, PostHog analytics
+- ~~**Week 5** — Topic clustering and Field Pulse, author and institution pages, personalized weekly digest with Resend, PostHog analytics, full Prefect orchestration~~ **done**
 - **Week 6** — Podcast mode (ElevenLabs), Fly.io deploy, custom domain, launch
 
 ## What's not built yet (intentional)
@@ -1228,11 +1566,10 @@ Production plan (Week 6): tier the decoding.
 - **Figure storage (R2)** — figures are extracted, analyzed, and discarded; persisting them matters when the frontend displays them alongside explanations
 - **GEO endpoints** (`.md` per paper, `llms.txt`) — cheap and well-suited to the product; deferred to Week 6
 - **Structured FAQ per paper** — the format AI Overviews favours; folds into the launch content pass
-- **Nightly auto-decode job** — Week 6, when there's a product to serve
 - **Stripe billing** — the Pro tier exists in the credit logic but has no payment path
 - **Clerk webhooks** — lazy sync covers it until there's a public domain
 - **`packages/shared` as a real workspace** — Week 6, alongside the Fly deploy
-- **Analytics (PostHog)** — Week 5
+- **Slug history and redirects** — topics are re-clustered weekly and can be renamed, breaking old URLs; worth building if topic pages become meaningful organic traffic
 - **Voice** — Week 6
 - **Kubernetes** — deferred indefinitely; may never be justified
 
@@ -1240,8 +1577,12 @@ Production plan (Week 6): tier the decoding.
 
 - **Prompt caching not activating.** Implementation is correct and verified against the raw SDK at 2488 tokens (past Haiku's 2048 minimum); Anthropic returns zero cache tokens regardless. Account- or model-side. Revisit Week 6.
 - **Golden set undersized.** Meaningful evaluation needs 15-30 papers across types; the set is smaller than that, which makes `pass_rate` a sample rather than a measurement. Expanding it is the cheapest available quality win.
-- **API not independently deployed.** FastAPI still runs from the Codespace with port 8000 public, and Vercel's `API_INTERNAL_URL` points there. Fly.io lands Day 40.
+- **API not independently deployed.** FastAPI still runs from a local machine with a tunnel or forwarded port, and Vercel's `API_INTERNAL_URL` points there. Fly.io lands Day 40.
 - **Background tasks die with the process.** Mode generation runs via FastAPI `BackgroundTasks`, which is in-process. A restart mid-generation leaves a row stuck in `GENERATING` with the credit already spent. A stale-claim reaper — or moving generation to the Prefect worker — is the Week 6 fix.
+- **Author disambiguation rate is low.** OpenAlex indexes arXiv papers with a one to two week lag, so most recent papers fall back to name matching. This improves on its own as papers age and the backfill reruns weekly.
+- **Momentum needs history.** Snapshots only cover the weeks the corpus spans. Until several months accumulate, most topics report `new` rather than a real trend, and the Field Pulse charts are mostly empty.
+- **Pipeline status is a single linear enum.** `PENDING → FETCHED → ENRICHED → PARSED → EMBEDDED → DECODED` implies each stage depends on the previous, which is false: abstract embedding needs no parsing, and enrichment is independent of both. Working around this required widening status filters in two CLIs. Per-stage timestamps would model it correctly.
 - **Batch figure results incomplete.** Early runs returned 1 of 6 figures; root cause was `max_length=800` on `FigureExplained.plain_language` rejecting longer explanations at validation. Limit raised to 2000; needs a confirming regeneration.
-- **DSPy cache masked variance.** Initial variance runs returned zero standard deviation across five executions — DSPy caches LM responses to disk by default, so runs 2-5 were served from cache. Fixed with `cache=False` in the experiment scripts. The cache stays enabled on the production path, where it is desirable.
+- **DSPy cache masked variance.** Initial variance runs returned zero standard deviation across five executions — DSPy caches LM responses to disk by default. Fixed with `cache=False` in the experiment scripts; the cache stays enabled on the production path.
+- **`.gitignore` swallowed `apps/web/src/lib/`.** A `lib/` rule inherited from the Python template applies at any depth, so the entire frontend library directory was silently untracked and lost on a fresh clone. Fixed by anchoring the rule to `/lib/`. Worth auditing the remaining generic rules from that template.
 - **Edge runtime deprecation.** OG image routes declare `runtime = "edge"`, which Next.js 16 deprecates in favour of `"nodejs"`. Cosmetic; one line per file.

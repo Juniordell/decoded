@@ -45,3 +45,21 @@ eval-all: eval-sections eval-modes
 
 gate:
 	cd apps/api && poetry run python evals/gate.py
+
+prefect-server:
+	cd apps/api && poetry run prefect server start
+
+prefect-worker:
+	cd apps/api && set -a && . ./.env && set +a && poetry run prefect worker start --pool decoded-pool
+
+prefect-deploy:
+	cd apps/api && poetry run prefect deploy --all
+
+run-ingestion:
+	cd apps/api && poetry run prefect deployment run 'decoded-ingestion/ingestion-hourly'
+
+run-weekly-dry:
+	cd apps/api && poetry run prefect deployment run 'decoded-weekly/weekly-cycle' --param skip_send=true
+
+run-weekly:
+	cd apps/api && poetry run prefect deployment run 'decoded-weekly/weekly-cycle'

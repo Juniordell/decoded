@@ -1,3 +1,9 @@
+"""Flow de ingestão: arXiv → enriquecimento → parsing → embedding.
+
+Roda de hora em hora. Cada etapa é independente o suficiente para que
+a falha de uma não impeça as outras de progredir no que já têm.
+"""
+
 from __future__ import annotations
 
 from datetime import timedelta
@@ -11,32 +17,27 @@ from decoded.ingestion.arxiv_poller import run_arxiv_poll
 from decoded.ingestion.enricher import enrich_pending_papers
 from decoded.ingestion.parser_pipeline import parse_enriched_papers
 from decoded.logging import configure_logging
-from prefect.blocks.system import Secret
+from decoded.observability.tracing import flush as flush_tracing
+from decoded.observability.tracing import init_tracing
 
-openai_key = Secret.load("openai-api-key").get()
 
-# ---------- tasks ----------
 @task(
     name="arxiv-poll",
     retries=3,
-    retry_delay_seconds=[30, 120, 600],  # 30s, 2m, 10m
+    retry_delay_seconds=[30, 120, 600],
     cache_key_fn=task_input_hash,
-    cache_expiration=timedelta(minutes=30),  # don't re-poll if run recently
+    cache_expiration=timedelta(minutes=30),
 )
 async def poll_arxiv_task(lookback_hours: int, max_results: int) -> dict:
     logger = get_run_logger()
-    logger.info(f"Polling arXiv (lookback={lookback_hours}h, max={max_results})")
+    logger.info(f"Polling arXiv: {lookback_hours}h, max {max_results}")
     return await run_arxiv_poll(
         lookback_hours=lookback_hours,
         max_results=max_results,
     )
 
 
-@task(
-    name="enrich-papers",
-    retries=2,
-    retry_delay_seconds=[60, 300],
-)
+@task(name="enrich-papers", retries=2, retry_delay_seconds=[60, 300])
 async def enrich_task(limit: int) -> dict:
     logger = get_run_logger()
     logger.info(f"Enriching up to {limit} papers")
@@ -47,16 +48,12 @@ async def enrich_task(limit: int) -> dict:
     )
 
 
-@task(
-    name="parse-papers",
-    retries=2,
-    retry_delay_seconds=[60, 300],
-)
+@task(name="parse-papers", retries=2, retry_delay_seconds=[60, 300])
 async def parse_task(limit: int) -> dict:
     logger = get_run_logger()
 
     if not settings.llama_cloud_api_key:
-        logger.warning("LLAMA_CLOUD_API_KEY not set — skipping parse stage")
+        logger.warning("LLAMA_CLOUD_API_KEY ausente — pulando parsing")
         return {"parsed": 0, "errors": 0, "skipped": True}
 
     logger.info(f"Parsing up to {limit} papers")
@@ -66,16 +63,12 @@ async def parse_task(limit: int) -> dict:
     )
 
 
-@task(
-    name="embed-papers",
-    retries=2,
-    retry_delay_seconds=[60, 300],
-)
+@task(name="embed-papers", retries=2, retry_delay_seconds=[60, 300])
 async def embed_task(limit: int) -> dict:
     logger = get_run_logger()
 
     if not settings.openai_api_key:
-        logger.warning("OPENAI_API_KEY not set — skipping embed stage")
+        logger.warning("OPENAI_API_KEY ausente — pulando embedding")
         return {"embedded": 0, "errors": 0, "skipped": True}
 
     logger.info(f"Embedding up to {limit} papers")
@@ -85,45 +78,43 @@ async def embed_task(limit: int) -> dict:
         embedding_model_small=settings.embedding_model_small,
         embedding_model_large=settings.embedding_model_large,
         limit=limit,
+        qdrant_api_key=settings.qdrant_api_key,
     )
 
 
-# ---------- flow ----------
 @flow(
     name="decoded-ingestion",
     log_prints=True,
-    description="Ingest → enrich → parse → embed. Runs hourly.",
+    description="arXiv → enrich → parse → embed. Horário.",
 )
 async def ingestion_flow(
     lookback_hours: int = 2,
     poll_max: int = 100,
-    enrich_limit: int = 50,
-    parse_limit: int = 5,   # small while developing (LlamaParse quota)
-    embed_limit: int = 10,
+    enrich_limit: int = 100,
+    parse_limit: int = 10,
+    embed_limit: int = 100,
 ) -> dict:
-    """Full pipeline, one stage at a time. Later stages only run if earlier ones succeed."""
     configure_logging("INFO")
+    init_tracing()
     logger = get_run_logger()
 
-    logger.info("=== Stage 1: arXiv poll ===")
-    poll_result = await poll_arxiv_task(lookback_hours, poll_max)
-    logger.info(f"Poll: {poll_result}")
+    results: dict = {}
 
-    logger.info("=== Stage 2: enrichment ===")
-    enrich_result = await enrich_task(enrich_limit)
-    logger.info(f"Enrich: {enrich_result}")
+    try:
+        logger.info("=== 1/4 arXiv ===")
+        results["poll"] = await poll_arxiv_task(lookback_hours, poll_max)
 
-    logger.info("=== Stage 3: parsing ===")
-    parse_result = await parse_task(parse_limit)
-    logger.info(f"Parse: {parse_result}")
+        logger.info("=== 2/4 enrichment ===")
+        results["enrich"] = await enrich_task(enrich_limit)
 
-    logger.info("=== Stage 4: embedding ===")
-    embed_result = await embed_task(embed_limit)
-    logger.info(f"Embed: {embed_result}")
+        logger.info("=== 3/4 parsing ===")
+        results["parse"] = await parse_task(parse_limit)
 
-    return {
-        "poll": poll_result,
-        "enrich": enrich_result,
-        "parse": parse_result,
-        "embed": embed_result,
-    }
+        logger.info("=== 4/4 embedding ===")
+        results["embed"] = await embed_task(embed_limit)
+
+    finally:
+        flush_tracing()
+
+    logger.info(f"Ingestion complete: {results}")
+    return results
