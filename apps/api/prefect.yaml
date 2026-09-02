@@ -42,12 +42,13 @@ deployments:
   - name: nightly-decode
     entrypoint: src/decoded/flows/decoding.py:nightly_decode_flow
     work_pool: *work_pool
-    schedules:
-      # 02:00 BRT = 05:00 UTC
-      - cron: "0 5 * * *"
-        timezone: "UTC"
+    # Desativado até haver verba para decodificação automática.
+    # Rodar manualmente: prefect deployment run 'decoded-nightly-decode/nightly-decode' --param limit=3
+    # schedules:
+    #   - cron: "0 5 * * *"
+    #     timezone: "UTC"
     parameters:
-      limit: 20
+      limit: 3
       min_priority: 2.0
-      daily_budget_usd: 5.0
+      daily_budget_usd: 0.75
     tags: [decoded, decoding, costs-money]

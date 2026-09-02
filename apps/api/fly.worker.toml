@@ -1,0 +1,27 @@
+# fly.toml app configuration file generated for decoded-worker on 2026-09-02T10:20:24-03:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'decoded-worker'
+primary_region = 'gru'
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[env]
+  LOG_LEVEL = 'INFO'
+
+[processes]
+  server = 'prefect server start --host 0.0.0.0 --port 4200'
+  worker = "sh -c 'sleep 15 && prefect worker start --pool decoded-pool --type process'"
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '2gb'
+  processes = ['server']
+
+[[vm]]
+  size = 'shared-cpu-2x'
+  memory = '4gb'
+  processes = ['worker']

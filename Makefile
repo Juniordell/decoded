@@ -63,3 +63,6 @@ run-weekly-dry:
 
 run-weekly:
 	cd apps/api && poetry run prefect deployment run 'decoded-weekly/weekly-cycle'
+
+prefect-prod:
+	fly proxy 4200:4200 --app decoded-worker

@@ -226,7 +226,6 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .ruff_cache/
-poetry.lock
 
 # Docker
 *.log
@@ -250,3 +249,5 @@ apps/api/optimization/compiled/*.json
 
 apps/api/mlruns/
 apps/api/mlflow.db*.sql
+.vercel
+.env*
