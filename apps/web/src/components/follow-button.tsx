@@ -47,7 +47,7 @@ export function FollowButton({
       <SignInButton mode="modal">
         <button
           type="button"
-          className="border border-border px-4 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:border-accent hover:text-accent"
+          className="border border-border px-4 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-subtle transition-colors hover:border-accent hover:text-accent"
         >
           Follow
         </button>
@@ -60,10 +60,10 @@ export function FollowButton({
       type="button"
       onClick={() => toggle.mutate()}
       disabled={toggle.isPending}
-      className={`border px-4 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] transition-colors disabled:opacity-50 ${
+      className={`border px-4 py-2 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors disabled:opacity-50 ${
         following
           ? "border-accent bg-accent text-accent-foreground"
-          : "border-border text-muted-foreground hover:border-accent hover:text-accent"
+          : "border-border text-subtle hover:border-accent hover:text-accent"
       }`}
     >
       {toggle.isPending ? "…" : following ? "Following" : "Follow"}

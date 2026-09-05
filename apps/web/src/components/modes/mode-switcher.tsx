@@ -18,6 +18,7 @@ import {
   type ModesListResponse,
   type StoryMode,
 } from "@/lib/mode-types";
+import { Resolve } from "@/components/brand";
 import { DiagramModeView } from "./diagram-mode";
 import { MathModeView } from "./math-mode";
 import { AnalogyModeView, CodeModeView, StoryModeView } from "./other-modes";
@@ -135,9 +136,7 @@ export function ModeSwitcher({ arxivId }: { arxivId: string }) {
   }
 
   if (isLoading) {
-    return (
-      <div className="h-10 animate-pulse border-t border-border bg-muted/30" />
-    );
+    return <div className="mt-[34px] h-10 animate-pulse bg-surface" />;
   }
 
   const modeMap = new Map<string, ModeInfo>(
@@ -146,16 +145,23 @@ export function ModeSwitcher({ arxivId }: { arxivId: string }) {
   const active = activeMode ? modeMap.get(activeMode) : null;
 
   return (
-    <section id="modes" className="scroll-mt-24 border-t border-border pt-8">
-      <h2 className="mb-1 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-        Explain it different
-      </h2>
-      <p className="mb-5 text-[14px] text-muted-foreground">
-        Same paper, five ways to understand it.
-      </p>
+    <section id="modes" className="scroll-mt-28">
+      <Resolve className="mb-8 mt-[34px]" />
+
+      <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.16em] text-subtle">
+          Explain it different
+        </h2>
+        <span className="font-mono text-[11.5px] text-subtle">
+          the same mechanism, five ways
+        </span>
+      </div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap gap-x-5 gap-y-2 border-b border-border pb-3">
+      <div
+        role="tablist"
+        className="mb-[30px] mt-[18px] flex flex-wrap items-baseline gap-x-[26px] gap-y-2 border-b border-border"
+      >
         {ALL_MODES.map((mode) => {
           const info = modeMap.get(mode);
           const isActive = activeMode === mode;
@@ -165,22 +171,26 @@ export function ModeSwitcher({ arxivId }: { arxivId: string }) {
             <button
               key={mode}
               type="button"
+              role="tab"
+              aria-selected={isActive}
               onClick={() => selectMode(isActive ? null : mode)}
-              className={`font-mono text-[11px] uppercase tracking-[0.14em] transition-colors ${
+              className={`-mb-px border-b-2 pb-3 font-mono text-[12px] uppercase tracking-[0.14em] transition-colors ${
                 isActive
-                  ? "text-accent"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "border-accent text-accent"
+                  : "border-transparent text-subtle hover:text-foreground"
               }`}
             >
               {MODE_LABELS[mode]}
-              {ready && <span className="ml-1 text-accent/60">·</span>}
+              {ready && !isActive && (
+                <span className="ml-1.5 text-accent-light">·</span>
+              )}
             </button>
           );
         })}
 
         {data?.credits_remaining !== null &&
           data?.credits_remaining !== undefined && (
-            <span className="ml-auto tnum font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/60">
+            <span className="tnum ml-auto pb-3 font-mono text-[11px] uppercase tracking-[0.14em] text-subtle">
               {data.plan === "pro"
                 ? "unlimited"
                 : `${data.credits_remaining} credits`}
@@ -190,7 +200,7 @@ export function ModeSwitcher({ arxivId }: { arxivId: string }) {
 
       {/* Conteúdo */}
       {activeMode && (
-        <div className="mt-8">
+        <div>
           <ModePanel
             mode={activeMode}
             info={active ?? null}
@@ -238,7 +248,7 @@ function ModePanel({
 
   if (info?.status === "not_applicable") {
     return (
-      <p className="border border-border bg-secondary/40 p-5 text-[14px] text-muted-foreground">
+      <p className="bg-surface px-6 py-5 text-[16px] text-muted-foreground">
         This mode doesn&apos;t fit this paper.
       </p>
     );
@@ -246,14 +256,14 @@ function ModePanel({
 
   if (isGenerating) {
     return (
-      <div className="border border-border bg-secondary/40 p-8 text-center">
+      <div className="bg-surface px-8 py-9 text-center">
         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-accent">
           Generating
         </p>
-        <p className="mt-2 text-[14px] text-muted-foreground">
+        <p className="mt-2.5 text-[16px] text-muted-foreground">
           This takes 20 to 60 seconds.
         </p>
-        <div className="mx-auto mt-5 h-px w-32 overflow-hidden bg-border">
+        <div className="mx-auto mt-6 h-px w-32 overflow-hidden bg-border">
           <div className="h-px w-1/3 animate-[slide_1.4s_ease-in-out_infinite] bg-accent" />
         </div>
       </div>
@@ -262,26 +272,28 @@ function ModePanel({
 
   // Não gerado
   return (
-    <div className="border border-border bg-secondary/40 p-8 text-center">
-      <p className="font-serif text-xl tracking-tight">{MODE_LABELS[mode]}</p>
-      <p className="mx-auto mt-2 max-w-sm text-[14px] leading-relaxed text-muted-foreground">
+    <div className="bg-surface px-8 py-9 text-center">
+      <p className="font-serif text-[22px] font-semibold tracking-[-0.01em]">
+        {MODE_LABELS[mode]}
+      </p>
+      <p className="mx-auto mt-2.5 max-w-[46ch] text-[16px] leading-[1.55] text-muted-foreground [text-wrap:pretty]">
         {MODE_DESCRIPTIONS[mode]}
       </p>
 
       {error != null && (
-        <p className="mt-4 font-mono text-[11px] text-destructive">
+        <p className="mt-4 font-mono text-[11.5px] text-destructive">
           {error instanceof Error && error.message.includes("402")
             ? "Out of credits. They reset weekly."
             : "Generation failed. Try again."}
         </p>
       )}
 
-      <div className="mt-6">
+      <div className="mt-7">
         {isSignedIn ? (
           <button
             type="button"
             onClick={onGenerate}
-            className="border border-accent px-5 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-accent transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="border border-accent bg-accent px-5 py-3 font-mono text-[11.5px] uppercase tracking-[0.14em] text-accent-foreground transition-colors hover:bg-accent-deep hover:border-accent-deep"
           >
             Generate · 1 credit
           </button>
@@ -289,7 +301,7 @@ function ModePanel({
           <SignInButton mode="modal">
             <button
               type="button"
-              className="border border-accent px-5 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-accent transition-colors hover:bg-accent hover:text-accent-foreground"
+              className="border border-accent bg-accent px-5 py-3 font-mono text-[11.5px] uppercase tracking-[0.14em] text-accent-foreground transition-colors hover:bg-accent-deep hover:border-accent-deep"
             >
               Sign in to generate
             </button>

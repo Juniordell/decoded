@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { Resolve } from "@/components/brand";
 import { AudioPlayer } from "./audio-player";
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "/api").replace(/\/+$/, "");
@@ -36,12 +37,13 @@ export function PodcastSection({ arxivId }: { arxivId: string }) {
   const minutes = Math.round((data.duration_seconds ?? 0) / 60);
 
   return (
-    <section id="podcast" className="scroll-mt-24 border-t border-border pt-8">
+    <section id="podcast" className="scroll-mt-28">
+      <Resolve className="mb-8 mt-[34px]" />
       <div className="mb-4 flex items-baseline justify-between gap-4">
-        <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.16em] text-subtle">
           Listen
         </h2>
-        <span className="tnum font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/60">
+        <span className="tnum font-mono text-[11.5px] uppercase tracking-[0.14em] text-subtle">
           {minutes} min
         </span>
       </div>

@@ -5,6 +5,33 @@ export const alt = "Decoded — AI research, explained for humans";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
+const PAPER = "#F7F6F1";
+const INK = "#16191A";
+const PINE = "#14573C";
+const SUBTLE = "#6E7573";
+
+/** The Layer Stack, montado com divs — satori não precisa de SVG para barras. */
+function LayerStack() {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        right: -40,
+        top: "50%",
+        transform: "translateY(-50%)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 26,
+        opacity: 0.08,
+      }}
+    >
+      {[520, 420, 324, 224, 130].map((w) => (
+        <div key={w} style={{ width: w, height: 22, background: PINE }} />
+      ))}
+    </div>
+  );
+}
+
 export default function OgImage() {
   return new ImageResponse(
     <div
@@ -14,28 +41,32 @@ export default function OgImage() {
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
-        background: "#0A1628",
+        background: PAPER,
         padding: "72px",
         fontFamily: "sans-serif",
+        position: "relative",
       }}
     >
+      <LayerStack />
+
       <div
         style={{
-          fontSize: 22,
-          color: "#6B7A94",
-          letterSpacing: "0.24em",
+          display: "flex",
+          fontSize: 20,
+          color: SUBTLE,
+          letterSpacing: "0.2em",
           textTransform: "uppercase",
-          marginBottom: 32,
+          marginBottom: 36,
         }}
       >
-        Decoded
+        Decoded · AI research, explained
       </div>
 
       <div
         style={{
           fontSize: 76,
-          lineHeight: 1.05,
-          color: "#F5F1E8",
+          lineHeight: 1.08,
+          color: INK,
           letterSpacing: "-0.03em",
           fontWeight: 700,
           display: "flex",
@@ -43,19 +74,21 @@ export default function OgImage() {
         }}
       >
         <span>Every AI paper,</span>
-        <span style={{ color: "#C1440E" }}>explained for humans.</span>
+        <span style={{ color: PINE }}>explained for humans.</span>
       </div>
 
       <div
         style={{
+          display: "flex",
           fontSize: 26,
           lineHeight: 1.4,
-          color: "#C7BFA5",
-          marginTop: 36,
-          maxWidth: 800,
+          color: SUBTLE,
+          marginTop: 40,
+          maxWidth: 760,
         }}
       >
-        TL;DRs, deep dives, figure explanations, and analogies. No PhD required.
+        One sentence, a sixty-second read, figures explained, and analogies that
+        name where they break. No PhD required.
       </div>
     </div>,
     size,

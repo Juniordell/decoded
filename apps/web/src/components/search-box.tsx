@@ -33,26 +33,31 @@ export function SearchBox({ autoFocus = false }: { autoFocus?: boolean }) {
 
   return (
     <div>
-      <div className="flex items-center gap-3 border-b border-border pb-3">
-        <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+      <div className="flex items-baseline gap-4 border-b border-rule-strong pb-3">
+        <label
+          htmlFor="ask"
+          className="flex-none font-mono text-[11.5px] uppercase tracking-[0.16em] text-accent"
+        >
           Ask
-        </span>
+        </label>
         <input
+          id="ask"
           ref={inputRef}
-          type="text"
+          type="search"
+          autoComplete="off"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") submit(value);
           }}
           placeholder="what are you trying to understand?"
-          className="flex-1 bg-transparent text-[17px] outline-none placeholder:text-muted-foreground/50"
+          className="min-w-0 flex-1 bg-transparent font-serif text-[clamp(20px,2.4vw,26px)] leading-[1.35] outline-none"
         />
         {value.length >= 2 && (
           <button
             type="button"
             onClick={() => submit(value)}
-            className="font-mono text-[11px] uppercase tracking-[0.16em] text-accent transition-opacity hover:opacity-70"
+            className="flex-none border-b border-accent-light pb-0.5 font-mono text-[11.5px] uppercase tracking-[0.14em] text-accent transition-colors hover:border-accent"
           >
             Search
           </button>
@@ -60,26 +65,30 @@ export function SearchBox({ autoFocus = false }: { autoFocus?: boolean }) {
       </div>
 
       {!params.get("q") && (
-        <div className="mt-5">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60">
+        <div className="mt-[clamp(32px,4vw,44px)]">
+          <p className="mb-5 font-mono text-[11px] uppercase tracking-[0.16em] text-subtle">
             Try
           </p>
-          <ul className="mt-2.5 space-y-1.5">
-            {EXAMPLES.map((ex) => (
-              <li key={ex}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setValue(ex);
-                    submit(ex);
-                  }}
-                  className="text-left text-[14px] text-muted-foreground transition-colors hover:text-accent"
-                >
+          <div className="flex flex-col">
+            {EXAMPLES.map((ex, i) => (
+              <button
+                key={ex}
+                type="button"
+                onClick={() => {
+                  setValue(ex);
+                  submit(ex);
+                }}
+                className="row-shift flex w-full items-baseline gap-[18px] border-t border-border py-[18px] text-left last:border-b"
+              >
+                <span className="tnum flex-none font-mono text-[11.5px] text-subtle">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span className="font-serif text-[20px] leading-[1.4]">
                   {ex}
-                </button>
-              </li>
+                </span>
+              </button>
             ))}
-          </ul>
+          </div>
         </div>
       )}
     </div>

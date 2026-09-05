@@ -41,25 +41,23 @@ export function PaperNav({ items }: { items: NavItem[] }) {
   }, []);
 
   return (
-    <nav className="sticky top-24 hidden lg:block">
-      <div className="mb-5 h-px w-full bg-border">
-        <div
-          className="h-px bg-accent transition-all duration-150"
-          style={{ width: `${progress * 100}%` }}
-        />
+    <nav className="hidden lg:block">
+      <div className="border-b border-rule-strong pb-3 font-mono text-[11px] uppercase tracking-[0.16em] text-subtle">
+        On this page
       </div>
 
-      <ul className="space-y-2.5">
+      <ul className="flex flex-col gap-[11px] border-b border-border py-4">
         {items.map((item) => {
           const cls =
             active === item.id
               ? "text-accent"
-              : "text-muted-foreground/60 hover:text-foreground";
+              : "text-muted-foreground hover:text-foreground";
           return (
             <li key={item.id}>
               <a
                 href={`#${item.id}`}
-                className={`block font-mono text-[10px] uppercase tracking-[0.16em] transition-colors ${cls}`}
+                aria-current={active === item.id ? "true" : undefined}
+                className={`block font-mono text-[12px] transition-colors ${cls}`}
               >
                 {item.label}
               </a>
@@ -67,6 +65,23 @@ export function PaperNav({ items }: { items: NavItem[] }) {
           );
         })}
       </ul>
+
+      {/* Progresso de leitura: um fio, não uma barra */}
+      <div
+        className="mt-4 h-px w-full bg-border"
+        role="presentation"
+        aria-hidden="true"
+      >
+        <div
+          className="h-px bg-accent transition-all duration-150"
+          style={{ width: `${progress * 100}%` }}
+        />
+      </div>
+
+      <p className="mt-[18px] font-mono text-[11.5px] leading-[1.75] text-subtle">
+        Every layer here is generated from the paper itself. The PDF is one
+        click away.
+      </p>
     </nav>
   );
 }

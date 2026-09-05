@@ -1,9 +1,20 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PaperCard } from "@/components/paper-card";
 import { TimelineChart } from "@/components/topics/timeline-chart";
+import {
+  BackLink,
+  Column,
+  PageShell,
+  PageTitle,
+  Rail,
+  RailHeading,
+  RailNote,
+  Stat,
+  SubSection,
+  WhereItBreaks,
+} from "@/components/page-shell";
 import { ApiError, api } from "@/lib/api";
 import { FollowButton } from "@/components/follow-button";
 
@@ -59,126 +70,107 @@ export default async function TopicPage({
   const momentumPct = Math.round(topic.momentum * 100);
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
-      <Link
-        href="/topics"
-        className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-accent"
-      >
-        ← Topics
-      </Link>
+    <PageShell tight>
+      <Column>
+        <BackLink href="/topics">← Topics</BackLink>
 
-      <div className="mt-5 flex items-start justify-between gap-6">
-        <h1 className="min-w-0 font-serif text-[34px] leading-[1.15] tracking-tight">
-          {topic.name}
-        </h1>
-        <div className="shrink-0">
-          <FollowButton targetType="topic" slug={topic.slug} />
+        <div className="mt-7 flex items-start justify-between gap-6">
+          <PageTitle className="min-w-0 text-[clamp(32px,4.2vw,48px)]">
+            {topic.name}
+          </PageTitle>
+          <div className="shrink-0">
+            <FollowButton targetType="topic" slug={topic.slug} />
+          </div>
         </div>
-      </div>
 
-      {topic.description && (
-        <p className="mt-4 text-[16px] leading-relaxed text-muted-foreground">
-          {topic.description}
-        </p>
-      )}
+        {topic.description && (
+          <p className="mt-5 max-w-[58ch] text-[18px] leading-[1.6] text-muted-foreground [text-wrap:pretty]">
+            {topic.description}
+          </p>
+        )}
 
-      {keywords.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground/60">
-          {keywords.slice(0, 8).map((k) => (
-            <span key={k}>{k}</span>
-          ))}
-        </div>
-      )}
-
-      {/* Números */}
-      <div className="mt-8 grid grid-cols-3 gap-6 border-y border-border py-5">
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-            Papers
-          </p>
-          <p className="tnum mt-1 font-serif text-2xl leading-none">
-            {topic.paper_count}
-          </p>
-        </div>
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-            Last 4 weeks
-          </p>
-          <p className="tnum mt-1 font-serif text-2xl leading-none">
-            {topic.recent_papers}
-          </p>
-        </div>
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-            {MOMENTUM_COPY[topic.momentum_label] ?? "Trend"}
-          </p>
-          <p
-            className={`tnum mt-1 font-serif text-2xl leading-none ${
-              topic.momentum_label === "rising"
-                ? "text-accent"
-                : topic.momentum_label === "cooling"
-                  ? "text-muted-foreground"
-                  : ""
-            }`}
-          >
-            {topic.momentum_label === "new"
-              ? "—"
-              : momentumPct > 0
-                ? `+${momentumPct}%`
-                : `${momentumPct}%`}
-          </p>
-        </div>
-      </div>
-
-      {/* Gráfico */}
-      <section className="mt-10">
-        <h2 className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-          Papers per week
-        </h2>
-        <TimelineChart points={timeline} />
-      </section>
-
-      {/* Autores */}
-      {authors.length > 0 && (
-        <section className="mt-12 border-t border-border pt-8">
-          <h2 className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Most active authors
-          </h2>
-          <div className="space-y-2.5">
-            {authors.map((a) => (
-              <div
-                key={a.name}
-                className="grid gap-1 sm:grid-cols-[1fr_auto] sm:gap-4"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-[14px]">{a.name}</p>
-                  {a.affiliation && (
-                    <p className="truncate text-[12px] text-muted-foreground">
-                      {a.affiliation}
-                    </p>
-                  )}
-                </div>
-                <p className="tnum shrink-0 font-mono text-[11px] text-muted-foreground">
-                  {a.paper_count} papers
-                  {a.total_citations > 0 && ` · ${a.total_citations} cites`}
-                </p>
-              </div>
+        {keywords.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-subtle">
+            {keywords.slice(0, 8).map((k) => (
+              <span key={k}>{k}</span>
             ))}
           </div>
-        </section>
-      )}
+        )}
 
-      {/* Papers */}
-      <section className="mt-12 border-t border-border pt-8">
-        <h2 className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-          Papers
-        </h2>
-        <div>
-          {papers.map((p) => (
-            <PaperCard key={p.arxiv_id} paper={p} />
-          ))}
+        <div className="mt-9 grid grid-cols-3 gap-6 border-y border-border py-6">
+          <Stat label="Papers" value={topic.paper_count} />
+          <Stat label="Last 4 weeks" value={topic.recent_papers} />
+          <Stat
+            label={MOMENTUM_COPY[topic.momentum_label] ?? "Trend"}
+            tone={
+              topic.momentum_label === "rising"
+                ? "accent"
+                : topic.momentum_label === "cooling"
+                  ? "muted"
+                  : "default"
+            }
+            value={
+              topic.momentum_label === "new"
+                ? "—"
+                : momentumPct > 0
+                  ? `+${momentumPct}%`
+                  : `−${Math.abs(momentumPct)}%`
+            }
+          />
         </div>
-      </section>
-    </main>
+
+        <div className="mt-12 space-y-12">
+          <SubSection label="Papers per week" className="border-t-0 pt-0">
+            <TimelineChart points={timeline} />
+          </SubSection>
+
+          {authors.length > 0 && (
+            <SubSection label="Most active authors">
+              <div className="space-y-3">
+                {authors.map((a) => (
+                  <div
+                    key={a.name}
+                    className="grid gap-1 sm:grid-cols-[1fr_auto] sm:gap-5"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-[16px]">{a.name}</p>
+                      {a.affiliation && (
+                        <p className="truncate font-mono text-[11.5px] text-subtle">
+                          {a.affiliation}
+                        </p>
+                      )}
+                    </div>
+                    <p className="tnum shrink-0 font-mono text-[12px] text-subtle">
+                      {a.paper_count} papers
+                      {a.total_citations > 0 && ` · ${a.total_citations} cites`}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </SubSection>
+          )}
+
+          <SubSection label="Papers">
+            <div>
+              {papers.map((p) => (
+                <PaperCard key={p.arxiv_id} paper={p} source="topic" />
+              ))}
+            </div>
+          </SubSection>
+        </div>
+      </Column>
+
+      <Rail>
+        <RailHeading>How this topic was found</RailHeading>
+        <RailNote>
+          Abstracts are embedded and clustered; the name comes from the
+          cluster&apos;s own vocabulary, not from a taxonomy.
+        </RailNote>
+        <WhereItBreaks className="mt-[22px]">
+          A paper sits in one cluster even when it belongs in two. Work that
+          straddles subfields will be under-counted here.
+        </WhereItBreaks>
+      </Rail>
+    </PageShell>
   );
 }

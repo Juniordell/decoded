@@ -4,6 +4,18 @@ import { notFound } from "next/navigation";
 
 import { FollowButton } from "@/components/follow-button";
 import { PaperCard } from "@/components/paper-card";
+import {
+  BackLink,
+  Column,
+  PageShell,
+  PageTitle,
+  Rail,
+  RailHeading,
+  RailNote,
+  Stat,
+  SubSection,
+  WhereItBreaks,
+} from "@/components/page-shell";
 import { ApiError, api } from "@/lib/api";
 
 export const revalidate = 1800;
@@ -45,112 +57,93 @@ export default async function InstitutionPage({
   const papers = inst.papers ?? [];
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
-      <Link
-        href="/institutions"
-        className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-accent"
-      >
-        ← Institutions
-      </Link>
+    <PageShell tight>
+      <Column>
+        <BackLink href="/institutions">← Institutions</BackLink>
 
-      <div className="mt-5 flex items-start justify-between gap-6">
-        <h1 className="min-w-0 font-serif text-[32px] leading-tight tracking-tight">
-          {inst.name}
-        </h1>
-        <div className="shrink-0">
-          <FollowButton
-            targetType="institution"
-            slug={inst.slug}
-            initialFollowing={inst.is_following}
-          />
-        </div>
-      </div>
-
-      <div className="mt-8 grid grid-cols-3 gap-6 border-y border-border py-5">
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-            Papers
-          </p>
-          <p className="tnum mt-1 font-serif text-2xl leading-none">
-            {inst.paper_count}
-          </p>
-        </div>
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-            Authors
-          </p>
-          <p className="tnum mt-1 font-serif text-2xl leading-none">
-            {inst.author_count}
-          </p>
-        </div>
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-            Citations
-          </p>
-          <p className="tnum mt-1 font-serif text-2xl leading-none">
-            {inst.total_citations}
-          </p>
-        </div>
-      </div>
-
-      {topics.length > 0 && (
-        <section className="mt-10">
-          <h2 className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Research areas
-          </h2>
-          <div className="flex flex-wrap gap-x-4 gap-y-2">
-            {topics.map((t) => (
-              <Link
-                key={t.slug}
-                href={`/topic/${t.slug}`}
-                className="text-[14px] transition-colors hover:text-accent"
-              >
-                {t.name}
-                <span className="tnum ml-1.5 text-[11px] text-muted-foreground">
-                  {t.paper_count}
-                </span>
-              </Link>
-            ))}
+        <div className="mt-7 flex items-start justify-between gap-6">
+          <PageTitle className="min-w-0 text-[clamp(32px,4.2vw,48px)]">
+            {inst.name}
+          </PageTitle>
+          <div className="shrink-0">
+            <FollowButton
+              targetType="institution"
+              slug={inst.slug}
+              initialFollowing={inst.is_following}
+            />
           </div>
-        </section>
-      )}
+        </div>
 
-      {authors.length > 0 && (
-        <section className="mt-10 border-t border-border pt-8">
-          <h2 className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Researchers
-          </h2>
-          <div className="space-y-1.5">
-            {authors.map((a) => (
-              <div
-                key={a.slug}
-                className="flex items-baseline justify-between gap-4"
-              >
-                <Link
-                  href={`/author/${a.slug}`}
-                  className="truncate text-[14px] transition-colors hover:text-accent"
-                >
-                  {a.name}
-                </Link>
-                <span className="tnum shrink-0 font-mono text-[11px] text-muted-foreground">
-                  {a.paper_count} papers
-                </span>
+        <div className="mt-9 grid grid-cols-3 gap-6 border-y border-border py-6">
+          <Stat label="Papers" value={inst.paper_count} />
+          <Stat label="Authors" value={inst.author_count} />
+          <Stat label="Citations" value={inst.total_citations} />
+        </div>
+
+        <div className="mt-12 space-y-12">
+          {topics.length > 0 && (
+            <SubSection label="Research areas" className="border-t-0 pt-0">
+              <div className="flex flex-wrap gap-x-5 gap-y-2.5">
+                {topics.map((t) => (
+                  <Link
+                    key={t.slug}
+                    href={`/topic/${t.slug}`}
+                    className="text-[16px] transition-colors hover:text-accent"
+                  >
+                    {t.name}
+                    <span className="tnum ml-2 font-mono text-[11.5px] text-subtle">
+                      {t.paper_count}
+                    </span>
+                  </Link>
+                ))}
               </div>
-            ))}
-          </div>
-        </section>
-      )}
+            </SubSection>
+          )}
 
-      <section className="mt-10 border-t border-border pt-8">
-        <h2 className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-          Recent papers
-        </h2>
-        <div>
-          {papers.map((p) => (
-            <PaperCard key={p.arxiv_id} paper={p} />
-          ))}
+          {authors.length > 0 && (
+            <SubSection label="Researchers">
+              <div className="space-y-2">
+                {authors.map((a) => (
+                  <div
+                    key={a.slug}
+                    className="flex items-baseline justify-between gap-5"
+                  >
+                    <Link
+                      href={`/author/${a.slug}`}
+                      className="truncate text-[16px] transition-colors hover:text-accent"
+                    >
+                      {a.name}
+                    </Link>
+                    <span className="tnum shrink-0 font-mono text-[12px] text-subtle">
+                      {a.paper_count} papers
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </SubSection>
+          )}
+
+          <SubSection label="Recent papers">
+            <div>
+              {papers.map((p) => (
+                <PaperCard key={p.arxiv_id} paper={p} source="institution" />
+              ))}
+            </div>
+          </SubSection>
         </div>
-      </section>
-    </main>
+      </Column>
+
+      <Rail>
+        <RailHeading>How this page is built</RailHeading>
+        <RailNote>
+          Papers are attributed from the affiliations printed on them, then
+          grouped by normalised institution name.
+        </RailNote>
+        <WhereItBreaks className="mt-[22px]">
+          A lab that publishes under several names — a university, a department,
+          a spin-out — can show up as more than one institution here.
+        </WhereItBreaks>
+      </Rail>
+    </PageShell>
   );
 }

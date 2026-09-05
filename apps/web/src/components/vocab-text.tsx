@@ -31,7 +31,7 @@ export function VocabText({
         return term ? (
           <Popover key={i}>
             <PopoverTrigger
-              className="cursor-help border-b border-dotted border-accent/60 transition-colors hover:border-accent hover:text-accent"
+              className="cursor-help border-b border-accent-light transition-colors hover:border-accent hover:text-accent"
               onClick={() => capture(EVENTS.VOCAB_TERM_OPENED, { term: term.term })}
             >
               {seg.text}
@@ -39,12 +39,12 @@ export function VocabText({
             <PopoverContent
               side="top"
               align="start"
-              className="w-72 border border-border bg-background p-3.5 shadow-md"
+              className="w-72 border border-border bg-background p-4 shadow-none ring-0"
             >
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-accent">
+              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">
                 {term.term}
               </p>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-foreground">
+              <p className="mt-2 text-[14.5px] leading-[1.55] text-foreground">
                 {term.definition}
               </p>
             </PopoverContent>

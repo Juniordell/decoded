@@ -1,26 +1,36 @@
 import type { Metadata } from "next";
-import { Instrument_Serif, Inter, JetBrains_Mono } from "next/font/google";
-import Link from "next/link";
+import { IBM_Plex_Mono, Inter, Literata } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 import { PostHogProvider } from "@/components/posthog-provider";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 
-const serif = Instrument_Serif({
+// Três faces, três funções, sem sobreposição.
+// Literata carrega títulos e o texto que se lê como artigo; o eixo óptico
+// deixa a mesma família servir a um título de 56px e a um corpo de 18px.
+const serif = Literata({
   variable: "--font-serif",
   subsets: ["latin"],
-  weight: "400",
+  style: ["normal", "italic"],
+  display: "swap",
 });
 
+// Inter só veste a interface: navegação, botões, rótulos de formulário.
 const sans = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const mono = JetBrains_Mono({
+// Mono é o sinal de que uma string é dado, não prosa: IDs do arXiv, datas,
+// categorias, código, rótulos de seção.
+const mono = IBM_Plex_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
 });
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -79,9 +89,9 @@ export default function RootLayout({
         >
           <PostHogProvider>
             <Providers>
-              <div className="min-h-screen">
+              <div className="flex min-h-screen flex-col">
                 <SiteHeader />
-                {children}
+                <div className="flex-1">{children}</div>
                 <SiteFooter />
               </div>
             </Providers>
@@ -89,74 +99,5 @@ export default function RootLayout({
         </body>
       </html>
     </ClerkProvider>
-  );
-}
-
-function SiteHeader() {
-  return (
-    <header className="border-b border-border">
-      <div className="mx-auto flex max-w-5xl items-baseline justify-between px-6 py-5">
-        <Link href="/" className="group">
-          <span className="font-serif text-2xl tracking-tight">Decoded</span>
-          <span className="ml-3 hidden font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground sm:inline">
-            AI research, explained
-          </span>
-        </Link>
-
-        <nav className="flex items-center gap-6 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-          <Link href="/" className="transition-colors hover:text-foreground">
-            Feed
-          </Link>
-          <Link
-            href="/pulse"
-            className="transition-colors hover:text-foreground"
-          >
-            Pulse
-          </Link>
-          <Link
-            href="/search"
-            className="transition-colors hover:text-foreground"
-          >
-            Search
-          </Link>
-          <Link href="/listen" className="transition-colors hover:text-foreground">
-            Listen
-          </Link>
-
-          <Show when="signed-in">
-            <Link
-              href="/library"
-              className="transition-colors hover:text-foreground"
-            >
-              Library
-            </Link>
-            <UserButton />
-          </Show>
-
-          <Show when="signed-out">
-            <SignInButton mode="modal">
-              <button
-                type="button"
-                className="uppercase tracking-[0.14em] text-accent transition-opacity hover:opacity-70"
-              >
-                Sign in
-              </button>
-            </SignInButton>
-          </Show>
-        </nav>
-      </div>
-    </header>
-  );
-}
-
-function SiteFooter() {
-  return (
-    <footer className="mt-24 border-t border-border">
-      <div className="mx-auto max-w-5xl px-6 py-10">
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-          Decoded · Built by Nelson Dell · {new Date().getFullYear()}
-        </p>
-      </div>
-    </footer>
   );
 }

@@ -1,5 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CopyField } from "@/components/copy-field";
+import {
+  Column,
+  PageLead,
+  PageShell,
+  PageTitle,
+  Rail,
+  RailHeading,
+  RailNote,
+  WhereItBreaks,
+} from "@/components/page-shell";
 
 const API_BASE = process.env.API_INTERNAL_URL ?? "http://localhost:8000";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -38,56 +49,95 @@ export default async function ListenPage() {
   const episodes = await getEpisodes();
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
-      <h1 className="font-serif text-4xl leading-tight tracking-tight sm:text-5xl">
-        Listen
-      </h1>
-      <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
-        Every decoded paper as three to eight minutes of audio. Written for the
-        ear — no diagrams, no notation, nothing you need to see.
-      </p>
+    <PageShell>
+      <Column>
+        <PageTitle className="mb-[22px]">Listen</PageTitle>
+        <PageLead className="mb-[clamp(36px,4.5vw,52px)] max-w-[54ch]">
+          Every decoded paper as three to eight minutes of audio. Written for
+          the ear — no diagrams, no notation, nothing you need to see.
+        </PageLead>
 
-      <div className="mt-8 border border-border p-5">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
-          Subscribe
-        </p>
-        <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
-          Paste this into Overcast, Pocket Casts, or any podcast app.
-        </p>
-        <code className="mt-3 block overflow-x-auto bg-secondary/60 px-3 py-2 font-mono text-[12px]">
-          {SITE_URL}/feed.xml
-        </code>
-      </div>
-
-      {episodes.length === 0 ? (
-        <p className="py-16 text-center font-mono text-xs uppercase tracking-[0.14em] text-muted-foreground">
-          No episodes yet
-        </p>
-      ) : (
-        <div className="mt-10">
-          {episodes.map((ep) => (
-            <Link
-              key={ep.arxiv_id}
-              href={`/paper/${ep.arxiv_id}#podcast`}
-              className="group block border-b border-border py-5 last:border-b-0"
-            >
-              <div className="flex items-baseline justify-between gap-4">
-                <h2 className="font-serif text-lg leading-snug tracking-tight transition-colors group-hover:text-accent">
-                  {ep.title}
-                </h2>
-                <span className="tnum shrink-0 font-mono text-[11px] text-muted-foreground">
-                  {Math.round(ep.duration_seconds / 60)} min
-                </span>
-              </div>
-              {ep.one_sentence && (
-                <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
-                  {ep.one_sentence}
-                </p>
-              )}
-            </Link>
-          ))}
+        <div className="mb-[clamp(44px,5vw,64px)] bg-surface px-[26px] py-6">
+          <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.16em] text-accent">
+            Subscribe
+          </p>
+          <p className="mb-4 text-[17px] text-muted-foreground">
+            Paste this into Overcast, Pocket Casts, or any podcast app.
+          </p>
+          <CopyField value={`${SITE_URL}/feed.xml`} />
         </div>
-      )}
-    </main>
+
+        <div className="border-b border-rule-strong pb-3 font-mono text-[11px] uppercase tracking-[0.16em] text-subtle">
+          Latest episodes
+        </div>
+
+        {episodes.length === 0 ? (
+          <p className="border-b border-border py-12 font-mono text-[11.5px] uppercase tracking-[0.14em] text-subtle">
+            No episodes yet
+          </p>
+        ) : (
+          <div>
+            {episodes.map((ep) => (
+              <div
+                key={ep.arxiv_id}
+                className="row-shift group border-b border-border last:border-b-0"
+              >
+                <Link
+                  href={`/paper/${ep.arxiv_id}#podcast`}
+                  className="flex flex-wrap items-start gap-x-6 gap-y-3.5 py-[26px]"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="mt-1 flex h-[34px] w-[34px] flex-none items-center justify-center border border-accent font-mono text-[11px] text-accent transition-colors group-hover:bg-accent group-hover:text-accent-foreground"
+                  >
+                    ▶
+                  </span>
+
+                  <div className="min-w-0 flex-[1_1_340px]">
+                    <div className="mb-2 flex flex-wrap items-center gap-x-3 font-mono text-[11.5px] tracking-[0.1em] text-subtle">
+                      <span>{ep.arxiv_id}</span>
+                      <span aria-hidden="true">·</span>
+                      <span className="tnum">
+                        {new Date(ep.published_at).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                    </div>
+
+                    <h2 className="mb-2 max-w-[40ch] font-serif text-[21px] font-semibold leading-[1.3] transition-colors [text-wrap:pretty] group-hover:text-accent">
+                      {ep.title}
+                    </h2>
+
+                    {ep.one_sentence && (
+                      <p className="max-w-[52ch] text-[16.5px] leading-[1.5] text-muted-foreground [text-wrap:pretty]">
+                        {ep.one_sentence}
+                      </p>
+                    )}
+                  </div>
+
+                  <span className="tnum ml-auto flex-none font-mono text-[12px] text-subtle">
+                    {Math.round(ep.duration_seconds / 60)} min
+                  </span>
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
+      </Column>
+
+      <Rail>
+        <RailHeading>Written for the ear</RailHeading>
+        <RailNote>
+          The audio script is not the article read aloud. Equations become
+          sentences, figures become descriptions, and section numbers are
+          dropped.
+        </RailNote>
+        <WhereItBreaks className="mt-[22px]">
+          Diagram-heavy papers lose the most. When a figure carries the
+          argument, the episode says so and points you back to the page.
+        </WhereItBreaks>
+      </Rail>
+    </PageShell>
   );
 }

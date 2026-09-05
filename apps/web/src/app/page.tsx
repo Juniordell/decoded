@@ -1,7 +1,18 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { CategoryFilter } from "@/components/category-filter";
 import { FeedList } from "@/components/feed-list";
 import { PaperCardSkeleton } from "@/components/paper-card";
+import {
+  Column,
+  ErrorNote,
+  PageShell,
+  Rail,
+  RailBlock,
+  RailHeading,
+  RailNote,
+} from "@/components/page-shell";
+import { categoryLabel } from "@/lib/format";
 import { api } from "@/lib/api";
 
 export const revalidate = 300; // ISR: revalida a cada 5 min
@@ -24,37 +35,33 @@ export default async function Home({
     error = e instanceof Error ? e.message : "Unknown error";
   }
 
+  const countCaption = [
+    decodedOnly ? "decoded papers" : "papers",
+    category ? `in ${categoryLabel(category)}` : "across cs.AI, cs.CL, cs.LG and cs.CV",
+  ].join(" ");
+
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
-      <div className="mb-10">
-        <h1 className="font-serif text-4xl leading-tight tracking-tight sm:text-5xl">
-          Every AI paper,
-          <br />
-          <span className="text-accent">explained for humans.</span>
+    <PageShell>
+      <Column>
+        <h1 className="mb-[22px] max-w-[20ch] font-serif text-[clamp(38px,4.8vw,58px)] font-semibold leading-[1.08] tracking-[-0.024em] [text-wrap:pretty]">
+          Every AI paper, <span className="text-accent">explained for humans.</span>
         </h1>
-        <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
-          New research from arXiv, decoded into TL;DRs, deep dives, figure
-          explanations, and analogies. No PhD required.
+
+        <p className="mb-[clamp(38px,4.5vw,56px)] max-w-[58ch] text-[19px] leading-[1.6] text-foreground/80 [text-wrap:pretty]">
+          New research from arXiv, decoded into one sentence, a sixty-second
+          read, figures explained, and analogies that name where they break. No
+          PhD required.
         </p>
-      </div>
 
-      <Suspense
-        fallback={
-          <div className="h-8 border-b border-border" />
-        }
-      >
-        <CategoryFilter />
-      </Suspense>
+        <Suspense fallback={<div className="mb-2 h-9 border-b border-rule-strong" />}>
+          <CategoryFilter />
+        </Suspense>
 
-      {error ? (
-        <div className="mt-8 border border-destructive/40 bg-destructive/5 p-5">
-          <p className="font-mono text-xs uppercase tracking-[0.14em] text-destructive">
-            API unreachable
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">{error}</p>
-        </div>
-      ) : initialData ? (
-        <div className="mt-2">
+        {error ? (
+          <div className="mt-8">
+            <ErrorNote title="API unreachable" message={error} />
+          </div>
+        ) : initialData ? (
           <Suspense
             fallback={
               <>
@@ -70,8 +77,50 @@ export default async function Home({
               decodedOnly={decodedOnly}
             />
           </Suspense>
-        </div>
-      ) : null}
-    </main>
+        ) : null}
+      </Column>
+
+      {initialData && (
+        <Rail>
+          <RailHeading>The index</RailHeading>
+
+          <RailBlock>
+            <div className="tnum mb-2 font-serif text-[52px] font-bold leading-[0.9] tracking-[-0.04em]">
+              {initialData.total.toLocaleString("en-US")}
+            </div>
+            <div className="font-mono text-[11.5px] leading-[1.5] tracking-[0.1em] text-muted-foreground">
+              {countCaption}
+            </div>
+          </RailBlock>
+
+          <RailBlock className="flex flex-col gap-2.5 font-mono text-[12px]">
+            <Link
+              href="/pulse"
+              className="text-muted-foreground transition-colors hover:text-accent"
+            >
+              what&apos;s heating up →
+            </Link>
+            <Link
+              href="/topics"
+              className="text-muted-foreground transition-colors hover:text-accent"
+            >
+              every topic tracked →
+            </Link>
+            <Link
+              href="/listen"
+              className="text-muted-foreground transition-colors hover:text-accent"
+            >
+              papers as audio →
+            </Link>
+          </RailBlock>
+
+          <RailNote>
+            Papers are ranked by community signal — Hacker News mentions and
+            citation velocity — then decoded in that order. Anything already
+            decoded stays free at a permanent URL.
+          </RailNote>
+        </Rail>
+      )}
+    </PageShell>
   );
 }

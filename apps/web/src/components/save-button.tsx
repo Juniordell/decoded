@@ -41,7 +41,7 @@ export function SaveButton({ arxivId }: { arxivId: string }) {
       <SignInButton mode="modal">
         <button
           type="button"
-          className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-accent"
+          className="border-b border-accent-light font-mono text-[11.5px] uppercase tracking-[0.14em] text-accent transition-colors hover:border-accent"
         >
           Save
         </button>
@@ -56,8 +56,8 @@ export function SaveButton({ arxivId }: { arxivId: string }) {
       type="button"
       onClick={() => toggle.mutate()}
       disabled={toggle.isPending}
-      className={`font-mono text-[10px] uppercase tracking-[0.14em] transition-colors disabled:opacity-50 ${
-        saved ? "text-accent" : "text-muted-foreground hover:text-accent"
+      className={`border-b font-mono text-[11.5px] uppercase tracking-[0.14em] text-accent transition-colors disabled:opacity-50 ${
+        saved ? "border-accent" : "border-accent-light hover:border-accent"
       }`}
     >
       {toggle.isPending ? "..." : saved ? "Saved" : "Save"}

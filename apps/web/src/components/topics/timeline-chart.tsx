@@ -12,7 +12,7 @@ export function TimelineChart({ points }: { points: TopicPoint[] }) {
 
   if (points.length === 0) {
     return (
-      <p className="py-10 text-center font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+      <p className="border-y border-border py-10 font-mono text-[11.5px] uppercase tracking-[0.14em] text-subtle">
         No timeline data yet
       </p>
     );
@@ -67,7 +67,9 @@ export function TimelineChart({ points }: { points: TopicPoint[] }) {
                 width={barW - gap}
                 height={Math.max(h, p.papers > 0 ? 2 : 0)}
                 className={
-                  isHovered ? "fill-accent" : "fill-accent/40 transition-colors"
+                  isHovered
+                    ? "fill-accent"
+                    : "fill-accent-soft transition-colors"
                 }
                 pointerEvents="none"
               />
@@ -86,7 +88,7 @@ export function TimelineChart({ points }: { points: TopicPoint[] }) {
               x={PADDING.left + i * barW + barW / 2}
               y={HEIGHT - 8}
               textAnchor="middle"
-              className="fill-muted-foreground font-mono text-[9px] uppercase tracking-wider"
+              className="fill-[var(--subtle-foreground)] font-mono text-[10px] uppercase tracking-wider"
             >
               {d.toLocaleDateString("en-US", {
                 month: "short",
@@ -100,26 +102,26 @@ export function TimelineChart({ points }: { points: TopicPoint[] }) {
       {/* Tooltip */}
       {hovered !== null && points[hovered] && (
         <div
-          className="pointer-events-none absolute top-0 border border-border bg-card px-3 py-2 shadow-sm"
+          className="pointer-events-none absolute top-0 border border-border bg-background px-3.5 py-2.5"
           style={{
             left: `${((hovered + 0.5) / points.length) * 100}%`,
             transform: "translateX(-50%)",
           }}
         >
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-subtle">
             {new Date(points[hovered].week).toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",
             })}
           </p>
-          <p className="tnum mt-0.5 font-serif text-lg leading-none">
+          <p className="tnum mt-1 font-serif text-[22px] font-bold leading-none tracking-[-0.02em]">
             {points[hovered].papers}
-            <span className="ml-1.5 font-sans text-[11px] text-muted-foreground">
+            <span className="ml-2 font-mono text-[11px] font-normal text-subtle">
               papers
             </span>
           </p>
           {points[hovered].citations > 0 && (
-            <p className="tnum mt-1 text-[11px] text-muted-foreground">
+            <p className="tnum mt-1.5 font-mono text-[11px] text-subtle">
               {points[hovered].citations} citations
             </p>
           )}

@@ -59,9 +59,15 @@ export function FeedList({
 
   if (papers.length === 0) {
     return (
-      <p className="py-16 text-center font-mono text-xs uppercase tracking-[0.14em] text-muted-foreground">
-        No papers match this filter
-      </p>
+      <div className="border-b border-border pb-[46px] pt-[42px]">
+        <p className="mb-3.5 font-mono text-[11px] uppercase tracking-[0.16em] text-subtle">
+          Nothing decoded here yet
+        </p>
+        <p className="max-w-[46ch] font-serif text-[21px] leading-[1.45] [text-wrap:pretty]">
+          No paper in this filter has cleared the queue. It runs in
+          community-signal order — opening one moves it up.
+        </p>
+      </div>
     );
   }
 
@@ -81,13 +87,14 @@ export function FeedList({
           </>
         )}
         {isError && (
-          <p className="py-8 text-center font-mono text-xs text-destructive">
+          <p className="py-8 font-mono text-[11.5px] uppercase tracking-[0.14em] text-destructive">
             Failed to load more
           </p>
         )}
         {!hasNextPage && papers.length > PAGE_SIZE && (
-          <p className="py-8 text-center font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground/60">
-            End of feed
+          <p className="flex items-center gap-4 py-8 font-mono text-[11px] uppercase tracking-[0.16em] text-subtle">
+            <span className="flex-none">End of feed</span>
+            <span aria-hidden="true" className="h-px flex-1 bg-border" />
           </p>
         )}
       </div>

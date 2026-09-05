@@ -22,46 +22,47 @@ export function CategoryFilter() {
     return qs ? `${pathname}?${qs}` : pathname;
   }
 
+  const item =
+    "font-mono text-[12px] uppercase tracking-[0.14em] transition-colors";
+
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-border pb-4 font-mono text-[11px] uppercase tracking-[0.14em]">
-      <Link
-        href={buildHref({ category: null })}
-        className={
-          active === null
-            ? "text-foreground"
-            : "text-muted-foreground transition-colors hover:text-foreground"
-        }
-      >
-        All
-      </Link>
-
-      {CATEGORIES.map((c) => (
+    <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-7 gap-y-4 border-b border-rule-strong pb-3">
+      <div className="flex flex-wrap gap-x-[22px] gap-y-2">
         <Link
-          key={c}
-          href={buildHref({ category: c })}
-          title={categoryLabel(c)}
-          className={
-            active === c
+          href={buildHref({ category: null })}
+          className={`${item} ${
+            active === null
               ? "text-foreground"
-              : "text-muted-foreground transition-colors hover:text-foreground"
-          }
+              : "text-subtle hover:text-foreground"
+          }`}
         >
-          {c.replace("cs.", "")}
+          All
         </Link>
-      ))}
 
-      <span className="ml-auto">
-        <Link
-          href={buildHref({ decoded: decodedOnly ? null : "1" })}
-          className={
-            decodedOnly
-              ? "text-accent"
-              : "text-muted-foreground transition-colors hover:text-foreground"
-          }
-        >
-          {decodedOnly ? "✓ decoded only" : "decoded only"}
-        </Link>
-      </span>
+        {CATEGORIES.map((c) => (
+          <Link
+            key={c}
+            href={buildHref({ category: c })}
+            title={categoryLabel(c)}
+            className={`${item} ${
+              active === c
+                ? "text-foreground"
+                : "text-subtle hover:text-foreground"
+            }`}
+          >
+            {c.replace("cs.", "")}
+          </Link>
+        ))}
+      </div>
+
+      <Link
+        href={buildHref({ decoded: decodedOnly ? null : "1" })}
+        className={`${item} ${
+          decodedOnly ? "text-accent" : "text-subtle hover:text-foreground"
+        }`}
+      >
+        Decoded only
+      </Link>
     </div>
   );
 }

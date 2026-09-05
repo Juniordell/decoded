@@ -7,6 +7,57 @@ export const contentType = "image/png";
 
 const API_BASE = process.env.API_INTERNAL_URL ?? "http://localhost:8000";
 
+const PAPER = "#F7F6F1";
+const INK = "#16191A";
+const PINE = "#14573C";
+const PINE_LIGHT = "#63BE93";
+const SUBTLE = "#6E7573";
+
+/**
+ * O ícone: duas linhas fragmentadas em cima (notação), duas contínuas embaixo
+ * (linguagem). Montado com divs porque este cartão é gerado aos milhares.
+ */
+function Mark() {
+  const row = (widths: number[], opacity: number) => (
+    <div style={{ display: "flex", gap: 8, opacity }}>
+      {widths.map((w, i) => (
+        <div key={i} style={{ width: w, height: 6, background: PINE }} />
+      ))}
+    </div>
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {row([14, 10, 16], 0.45)}
+      {row([24, 24], 0.45)}
+      {row([56], 1)}
+      {row([40], 1)}
+    </div>
+  );
+}
+
+/** O Layer Stack ao fundo, em 8% de Pine. */
+function LayerStack() {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        right: -40,
+        top: "50%",
+        transform: "translateY(-50%)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 26,
+        opacity: 0.08,
+      }}
+    >
+      {[520, 420, 324, 224, 130].map((w) => (
+        <div key={w} style={{ width: w, height: 22, background: PINE }} />
+      ))}
+    </div>
+  );
+}
+
 export default async function OgImage({
   params,
 }: {
@@ -40,42 +91,52 @@ export default async function OgImage({
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        background: "#0A1628",
+        background: PAPER,
         padding: "64px 72px",
         fontFamily: "sans-serif",
+        position: "relative",
       }}
     >
+      <LayerStack />
+
       {/* topo */}
-      <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 20,
+          position: "relative",
+        }}
+      >
+        <Mark />
         <div
           style={{
+            display: "flex",
             fontSize: 30,
-            color: "#F5F1E8",
+            color: INK,
             letterSpacing: "-0.02em",
             fontWeight: 700,
           }}
         >
           Decoded
         </div>
-        <div
-          style={{
-            fontSize: 15,
-            color: "#6B7A94",
-            letterSpacing: "0.18em",
-            textTransform: "uppercase",
-          }}
-        >
-          AI research, explained
-        </div>
       </div>
 
       {/* meio */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 26 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 28,
+          position: "relative",
+        }}
+      >
         <div
           style={{
+            display: "flex",
             fontSize: oneSentence ? 46 : 56,
             lineHeight: 1.15,
-            color: "#F5F1E8",
+            color: INK,
             letterSpacing: "-0.025em",
             fontWeight: 600,
           }}
@@ -86,9 +147,13 @@ export default async function OgImage({
         {oneSentence && (
           <div
             style={{
+              display: "flex",
               fontSize: 26,
               lineHeight: 1.4,
-              color: "#C1440E",
+              color: SUBTLE,
+              borderBottom: `3px solid ${PINE_LIGHT}`,
+              paddingBottom: 14,
+              maxWidth: 900,
             }}
           >
             {oneSentence.length > 130
@@ -105,9 +170,10 @@ export default async function OgImage({
           alignItems: "center",
           gap: 24,
           fontSize: 17,
-          color: "#6B7A94",
+          color: SUBTLE,
           letterSpacing: "0.14em",
           textTransform: "uppercase",
+          position: "relative",
         }}
       >
         <span>arXiv {params.arxiv_id}</span>

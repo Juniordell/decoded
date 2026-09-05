@@ -3,82 +3,120 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+  Decoded design system — Pine on Bone.
+
+  Pine (#14573C) appears once per idea and never as decoration: the link, the
+  defined term, the active tab, the number that changed. Structure comes from
+  hairline rules and whitespace, never from shadows or elevation. Backgrounds
+  are paper, never pure white; ink is never pure black.
+*/
+
 :root {
-  /* Base: papel, não branco puro */
-  --background: oklch(0.98 0.005 90);
-  --foreground: oklch(0.22 0.02 250);
+  /* Superfícies */
+  --background: #f7f6f1; /* Paper */
+  --surface: #e7e4da; /* Bone Deep — insets, code, table bands */
+  --tint: #e9f0eb; /* Pine 100 — "where it breaks", callouts */
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.02 250);
+  --card: #f7f6f1;
+  --card-foreground: #16191a;
+  --popover: #f7f6f1;
+  --popover-foreground: #16191a;
 
-  --primary: oklch(0.35 0.08 250);
-  --primary-foreground: oklch(0.98 0.005 90);
+  /* Texto */
+  --foreground: #16191a; /* Ink */
+  --muted-foreground: #4a5150; /* Texto secundário */
+  --subtle-foreground: #6e7573; /* Metadados, mono, terciário */
 
-  --secondary: oklch(0.95 0.008 90);
-  --secondary-foreground: oklch(0.3 0.03 250);
+  /* Pine */
+  --primary: #14573c;
+  --primary-foreground: #f7f6f1;
+  --accent: #14573c;
+  --accent-foreground: #f7f6f1;
+  --accent-deep: #0c3a28;
+  --accent-light: #63be93; /* Pine Light — sublinhados, dark mode */
+  --accent-soft: #c4d6c9; /* Pine 200 — marca-texto, bordas de badge */
 
-  --muted: oklch(0.95 0.008 90);
-  --muted-foreground: oklch(0.52 0.02 250);
+  --secondary: #e7e4da;
+  --secondary-foreground: #16191a;
+  --muted: #e7e4da;
 
-  --accent: oklch(0.55 0.16 45);
-  --accent-foreground: oklch(0.98 0.005 90);
+  /* Traços */
+  --border: #e2dfd5; /* Fio de cabelo */
+  --rule-strong: #16191a; /* Régua que abre uma seção */
+  --input: #e2dfd5;
+  --ring: #14573c;
 
-  --border: oklch(0.9 0.01 90);
-  --input: oklch(0.9 0.01 90);
-  --ring: oklch(0.55 0.16 45);
+  --destructive: #96341f;
 
-  --destructive: oklch(0.55 0.2 25);
-
-  --radius: 0.25rem;
+  /* Sem cantos arredondados: o sistema é impresso, não de app */
+  --radius: 0rem;
 }
 
 .dark {
-  --background: oklch(0.16 0.02 250);
-  --foreground: oklch(0.94 0.008 90);
+  --background: #16191b;
+  --surface: #1e2321;
+  --tint: #1b2a23;
 
-  --card: oklch(0.2 0.025 250);
-  --card-foreground: oklch(0.94 0.008 90);
+  --card: #16191b;
+  --card-foreground: #efede6;
+  --popover: #1e2321;
+  --popover-foreground: #efede6;
 
-  --primary: oklch(0.88 0.01 90);
-  --primary-foreground: oklch(0.2 0.025 250);
+  --foreground: #efede6;
+  --muted-foreground: #a8afac;
+  --subtle-foreground: #868d8a;
 
-  --secondary: oklch(0.26 0.025 250);
-  --secondary-foreground: oklch(0.94 0.008 90);
+  --primary: #63be93;
+  --primary-foreground: #16191b;
+  --accent: #63be93;
+  --accent-foreground: #16191b;
+  --accent-deep: #8fd4b1;
+  --accent-light: #63be93;
+  --accent-soft: #2e4a3b;
 
-  --muted: oklch(0.26 0.025 250);
-  --muted-foreground: oklch(0.68 0.02 250);
+  --secondary: #1e2321;
+  --secondary-foreground: #efede6;
+  --muted: #1e2321;
 
-  --accent: oklch(0.62 0.16 45);
-  --accent-foreground: oklch(0.16 0.02 250);
+  --border: #2c312f;
+  --rule-strong: #efede6;
+  --input: #2c312f;
+  --ring: #63be93;
 
-  --border: oklch(0.3 0.025 250);
-  --input: oklch(0.3 0.025 250);
-  --ring: oklch(0.62 0.16 45);
-
-  --destructive: oklch(0.62 0.19 25);
+  --destructive: #d2705a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-tint: var(--tint);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-subtle: var(--subtle-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-deep: var(--accent-deep);
+  --color-accent-light: var(--accent-light);
+  --color-accent-soft: var(--accent-soft);
   --color-border: var(--border);
+  --color-rule-strong: var(--rule-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-destructive: var(--destructive);
 
-  --radius-sm: calc(var(--radius) - 2px);
-  --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) + 4px);
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
 
   --font-serif: var(--font-serif);
   --font-sans: var(--font-sans);
@@ -89,16 +127,55 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+    font-size: 18px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
     font-feature-settings:
       "kern" 1,
       "liga" 1;
   }
+
+  ::selection {
+    background: var(--accent-soft);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--subtle-foreground);
+  }
 }
 
+/* Numerais tabulares: colunas de números alinham */
 .tnum {
   font-variant-numeric: tabular-nums;
+}
+
+/*
+  Deslocamento no hover das linhas da lista. Substitui o card com sombra:
+  a linha anda um pouco para a direita em vez de subir.
+*/
+.row-shift {
+  transition: padding-left 220ms ease;
+}
+.row-shift:hover {
+  padding-left: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row-shift {
+    transition: none;
+  }
+  .row-shift:hover {
+    padding-left: 0;
+  }
 }
 
 @keyframes slide {

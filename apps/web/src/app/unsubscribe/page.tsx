@@ -35,7 +35,7 @@ function UnsubscribeInner() {
 
   if (state === "loading") {
     return (
-      <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+      <p className="font-mono text-[11.5px] uppercase tracking-[0.16em] text-subtle">
         Unsubscribing…
       </p>
     );
@@ -44,16 +44,16 @@ function UnsubscribeInner() {
   if (state === "error") {
     return (
       <>
-        <h1 className="font-serif text-3xl tracking-tight">
+        <h1 className="font-serif text-[clamp(30px,4vw,40px)] font-semibold leading-[1.1] tracking-[-0.02em]">
           That link didn&apos;t work
         </h1>
-        <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
+        <p className="mt-5 text-[17px] leading-[1.6] text-muted-foreground [text-wrap:pretty]">
           The link may be malformed or already used. You can turn the digest off
           from your settings.
         </p>
         <Link
           href="/settings"
-          className="mt-8 inline-block font-mono text-[10px] uppercase tracking-[0.16em] text-accent hover:underline"
+          className="mt-8 inline-block border-b border-accent-light pb-0.5 font-mono text-[11.5px] uppercase tracking-[0.14em] text-accent transition-colors hover:border-accent"
         >
           Settings →
         </Link>
@@ -63,8 +63,10 @@ function UnsubscribeInner() {
 
   return (
     <>
-      <h1 className="font-serif text-3xl tracking-tight">Unsubscribed</h1>
-      <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
+      <h1 className="font-serif text-[clamp(30px,4vw,40px)] font-semibold leading-[1.1] tracking-[-0.02em]">
+        Unsubscribed
+      </h1>
+      <p className="mt-5 text-[17px] leading-[1.6] text-muted-foreground [text-wrap:pretty]">
         {email ? (
           <>
             No more weekly digests to <span className="font-mono">{email}</span>.
@@ -74,11 +76,17 @@ function UnsubscribeInner() {
         )}{" "}
         Nothing else changes — your saved papers and account stay as they were.
       </p>
-      <div className="mt-8 flex gap-6 font-mono text-[10px] uppercase tracking-[0.16em]">
-        <Link href="/settings" className="text-accent hover:underline">
+      <div className="mt-8 flex flex-wrap gap-6 font-mono text-[11.5px] uppercase tracking-[0.14em]">
+        <Link
+          href="/settings"
+          className="border-b border-accent-light pb-0.5 text-accent transition-colors hover:border-accent"
+        >
           Turn it back on
         </Link>
-        <Link href="/" className="text-muted-foreground hover:text-foreground">
+        <Link
+          href="/"
+          className="text-subtle transition-colors hover:text-foreground"
+        >
           Back to Decoded
         </Link>
       </div>
@@ -88,10 +96,10 @@ function UnsubscribeInner() {
 
 export default function UnsubscribePage() {
   return (
-    <main className="mx-auto max-w-lg px-6 py-24">
+    <main className="mx-auto max-w-[52ch] px-6 py-24 sm:px-10">
       <Suspense
         fallback={
-          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+          <p className="font-mono text-[11.5px] uppercase tracking-[0.16em] text-subtle">
             Loading…
           </p>
         }

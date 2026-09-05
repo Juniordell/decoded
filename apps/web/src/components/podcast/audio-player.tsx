@@ -141,7 +141,7 @@ export function AudioPlayer({
   const progress = duration > 0 ? (current / duration) * 100 : 0;
 
   return (
-    <div className="border border-border bg-card">
+    <div className="bg-surface">
       <audio
         ref={audioRef}
         src={src}
@@ -185,7 +185,7 @@ export function AudioPlayer({
           type="button"
           onClick={() => skip(-15)}
           disabled={!ready}
-          className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
+          className="shrink-0 font-mono text-[11px] uppercase tracking-[0.14em] text-subtle transition-colors hover:text-foreground disabled:opacity-40"
         >
           −15
         </button>
@@ -194,14 +194,14 @@ export function AudioPlayer({
           type="button"
           onClick={() => skip(30)}
           disabled={!ready}
-          className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
+          className="shrink-0 font-mono text-[11px] uppercase tracking-[0.14em] text-subtle transition-colors hover:text-foreground disabled:opacity-40"
         >
           +30
         </button>
 
         <div className="flex-1" />
 
-        <span className="tnum shrink-0 font-mono text-[11px] text-muted-foreground">
+        <span className="tnum shrink-0 font-mono text-[12px] text-subtle">
           {formatTime(current)} / {formatTime(duration)}
         </span>
 
@@ -211,10 +211,8 @@ export function AudioPlayer({
               key={s}
               type="button"
               onClick={() => changeSpeed(s)}
-              className={`tnum font-mono text-[10px] transition-colors ${
-                speed === s
-                  ? "text-accent"
-                  : "text-muted-foreground/50 hover:text-foreground"
+              className={`tnum font-mono text-[11px] transition-colors ${
+                speed === s ? "text-accent" : "text-subtle hover:text-foreground"
               }`}
             >
               {s}×
@@ -225,7 +223,7 @@ export function AudioPlayer({
 
       {/* Barra de progresso */}
       <div
-        className="group relative h-2 cursor-pointer bg-secondary"
+        className="group relative h-2 cursor-pointer bg-border"
         onClick={(e) => {
           if (duration <= 0) return;
           const rect = e.currentTarget.getBoundingClientRect();
@@ -243,7 +241,7 @@ export function AudioPlayer({
           chapters.map((c) => (
             <div
               key={c.title}
-              className="absolute inset-y-0 w-px bg-background/60"
+              className="absolute inset-y-0 w-px bg-background"
               style={{ left: `${(c.start_seconds / duration) * 100}%` }}
             />
           ))}
@@ -260,15 +258,15 @@ export function AudioPlayer({
                   seekTo(c.start_seconds);
                   if (!playing) void play();
                 }}
-                className={`flex w-full items-baseline gap-3 px-5 py-2.5 text-left transition-colors hover:bg-secondary/60 ${
-                  activeChapter === i ? "bg-secondary/40" : ""
+                className={`flex w-full items-baseline gap-3.5 px-5 py-3 text-left transition-colors hover:bg-tint ${
+                  activeChapter === i ? "bg-tint" : ""
                 }`}
               >
-                <span className="tnum shrink-0 font-mono text-[10px] text-muted-foreground/50">
+                <span className="tnum shrink-0 font-mono text-[11px] text-subtle">
                   {formatTime(c.start_seconds)}
                 </span>
                 <span
-                  className={`text-[14px] ${
+                  className={`text-[16px] ${
                     activeChapter === i ? "text-accent" : ""
                   }`}
                 >

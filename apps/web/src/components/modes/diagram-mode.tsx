@@ -24,12 +24,12 @@ export function DiagramModeView({ data }: { data: DiagramMode }) {
           themeVariables: {
             fontFamily: "var(--font-sans), sans-serif",
             fontSize: "14px",
-            primaryColor: "#EDE7D6",
-            primaryTextColor: "#1A2540",
-            primaryBorderColor: "#C7BFA5",
-            lineColor: "#6B7A94",
-            secondaryColor: "#F5F1E8",
-            tertiaryColor: "#FFFFFF",
+            primaryColor: "#E7E4DA",
+            primaryTextColor: "#16191A",
+            primaryBorderColor: "#C4D6C9",
+            lineColor: "#14573C",
+            secondaryColor: "#E9F0EB",
+            tertiaryColor: "#F7F6F1",
           },
         });
         mermaidInitialized = true;
@@ -57,13 +57,13 @@ export function DiagramModeView({ data }: { data: DiagramMode }) {
 
   return (
     <div className="space-y-6">
-      <p className="text-[15px] leading-relaxed text-muted-foreground">
+      <p className="max-w-[62ch] leading-[1.6] text-muted-foreground [text-wrap:pretty]">
         {data.caption}
       </p>
 
       <div
         ref={containerRef}
-        className="overflow-x-auto border border-border bg-card p-6"
+        className="overflow-x-auto bg-surface p-6"
       >
         {svg && (
           <div
@@ -74,26 +74,26 @@ export function DiagramModeView({ data }: { data: DiagramMode }) {
 
         {error && (
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-destructive">
+            <p className="font-mono text-[11.5px] uppercase tracking-[0.14em] text-destructive">
               Diagram failed to render
             </p>
-            <pre className="mt-3 overflow-x-auto font-mono text-[12px] text-muted-foreground">
+            <pre className="mt-3 overflow-x-auto font-mono text-[13px] leading-[1.7] text-muted-foreground">
               {data.mermaid}
             </pre>
           </div>
         )}
 
-        {!svg && !error && <div className="h-48 animate-pulse bg-muted" />}
+        {!svg && !error && <div className="h-48 animate-pulse bg-border/60" />}
       </div>
 
       {data.walkthrough.length > 0 && (
         <ol className="space-y-3">
           {data.walkthrough.map((step, i) => (
-            <li key={i} className="grid gap-2 sm:grid-cols-[32px_1fr]">
-              <span className="tnum font-mono text-[11px] text-muted-foreground/50">
+            <li key={i} className="grid gap-2 sm:grid-cols-[38px_1fr]">
+              <span className="tnum font-mono text-[11.5px] text-subtle">
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <span className="text-[14px] leading-relaxed">{step}</span>
+              <span className="max-w-[62ch] leading-[1.6]">{step}</span>
             </li>
           ))}
         </ol>

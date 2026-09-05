@@ -13,6 +13,8 @@ import {
 } from "@/components/decoded-sections";
 import { OriginalAbstract } from "@/components/original-abstract";
 import { PaperNav, type NavItem } from "@/components/paper-nav";
+import { Column, PageShell, Rail } from "@/components/page-shell";
+import { Redacted } from "@/components/brand";
 import { ApiError, api } from "@/lib/api";
 import { decoded } from "@/lib/decoded-types";
 import { categoryShort, compactNumber, relativeTime } from "@/lib/format";
@@ -106,31 +108,43 @@ export default async function PaperPage({
   ].filter(Boolean) as NavItem[];
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12">
+    <>
       <PaperJsonLd paper={paper} oneSentence={one?.text ?? null} />
       <SectionTracker
         arxivId={paper.arxiv_id}
         sectionIds={navItems.map((n) => n.id)}
       />
-      <div className="grid gap-12 lg:grid-cols-[1fr_160px]">
-        <article className="min-w-0 max-w-2xl">
-          <header className="mb-10">
-            <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+
+      <PageShell tight>
+        <Column>
+          <Link
+            href="/"
+            className="inline-block border-b border-accent-light pb-0.5 font-mono text-[11.5px] uppercase tracking-[0.14em] text-accent transition-colors hover:border-accent"
+          >
+            ← Feed
+          </Link>
+
+          <header className="mt-7">
+            <div className="mb-3.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 font-mono text-[11.5px] tracking-[0.1em] text-subtle">
               <span>{paper.arxiv_id}</span>
+              <span aria-hidden="true">·</span>
               <span className="tnum">{relativeTime(paper.published_at)}</span>
               {(paper.categories ?? []).slice(0, 3).map((c) => (
-                <span key={c} className="text-muted-foreground/70">
+                <span key={c}>
+                  <span aria-hidden="true" className="mr-3">
+                    ·
+                  </span>
                   {categoryShort(c)}
                 </span>
               ))}
             </div>
 
-            <h1 className="font-serif text-[32px] leading-[1.2] tracking-tight sm:text-[38px]">
+            <h1 className="max-w-[26ch] font-serif text-[clamp(32px,4.2vw,52px)] font-semibold leading-[1.08] tracking-[-0.024em] [text-wrap:pretty]">
               {paper.title}
             </h1>
 
             {paper.authors && paper.authors.length > 0 && (
-              <p className="mt-4 text-[13px] leading-relaxed text-muted-foreground">
+              <p className="mt-5 max-w-[62ch] font-mono text-[12px] leading-[1.7] text-muted-foreground">
                 {paper.authors
                   .slice(0, 6)
                   .map((a) => a.name)
@@ -139,9 +153,9 @@ export default async function PaperPage({
               </p>
             )}
 
-            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2.5 border-b border-rule-strong pb-3.5 font-mono text-[11.5px] uppercase tracking-[0.14em]">
               {paper.citation_count > 0 && (
-                <span className="tnum">
+                <span className="tnum text-subtle">
                   {compactNumber(paper.citation_count)} citations
                 </span>
               )}
@@ -151,19 +165,23 @@ export default async function PaperPage({
                   href={paper.hn_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="transition-colors hover:text-accent"
+                  className="tnum border-b border-accent-light text-accent transition-colors hover:border-accent"
                 >
-                  HN x{paper.hn_mentions}
+                  HN ×{paper.hn_mentions}
                 </a>
               ) : (
-                paper.hn_mentions > 0 && <span>HN x{paper.hn_mentions}</span>
+                paper.hn_mentions > 0 && (
+                  <span className="tnum text-subtle">
+                    HN ×{paper.hn_mentions}
+                  </span>
+                )
               )}
 
               <a
                 href={paper.pdf_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="transition-colors hover:text-accent"
+                className="border-b border-accent-light text-accent transition-colors hover:border-accent"
               >
                 PDF
               </a>
@@ -172,20 +190,24 @@ export default async function PaperPage({
           </header>
 
           {!isDecoded && (
-            <div className="border border-border bg-secondary/40 p-6">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            <div className="mt-[clamp(36px,4.5vw,52px)] bg-surface px-7 py-[26px]">
+              <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.16em] text-subtle">
                 Not decoded yet
               </p>
-              <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-                This paper hasn&apos;t been decoded. The original abstract is
-                below.
+              <Redacted width={280} className="mb-[18px]" />
+              <p className="max-w-[56ch] text-[17px] leading-[1.55] [text-wrap:pretty]">
+                This paper is in the queue. The original abstract is at the
+                bottom of the page, and opening it here moves it up.
               </p>
             </div>
           )}
 
-          <div className="space-y-10">
+          <div className="mt-[clamp(36px,4.5vw,52px)] max-w-[70ch]">
             {one && (
-              <section id="tldr" className="scroll-mt-24">
+              <section id="tldr" className="scroll-mt-28">
+                <h2 className="mb-3.5 font-mono text-[11px] uppercase tracking-[0.16em] text-subtle">
+                  One sentence
+                </h2>
                 <OneSentenceBlock data={one} />
               </section>
             )}
@@ -226,23 +248,14 @@ export default async function PaperPage({
 
             <OriginalAbstract abstract={paper.abstract} />
           </div>
-
-          <div className="mt-12 border-t border-border pt-8">
-            <Link
-              href="/"
-              className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-accent"
-            >
-              ← Back to feed
-            </Link>
-          </div>
-        </article>
+        </Column>
 
         {navItems.length > 0 && (
-          <aside>
+          <Rail>
             <PaperNav items={navItems} />
-          </aside>
+          </Rail>
         )}
-      </div>
-    </main>
+      </PageShell>
+    </>
   );
 }
